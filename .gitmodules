@@ -1,0 +1,3 @@
+[submodule "Models/Navigation/awpy"]
+	path = Models/Navigation/awpy
+	url = https://github.com/BeanBois/awpy.git
