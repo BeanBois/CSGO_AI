@@ -1,3 +1,7 @@
 [submodule "Models/Navigation/awpy"]
 	path = Models/Navigation/awpy
 	url = https://github.com/BeanBois/awpy.git
+
+[submodule "Models/Visual/Yolov5ForCSGO"]
+	path = Models/Visual/Yolov5ForCSGO
+	url = https://github.com/BeanBois/Yolov5ForCSGO.git
