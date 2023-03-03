@@ -8,25 +8,26 @@ import torch
 import os
 import matplotlib.pyplot as plt
 
+
 #lets take a functional approach with processing images
 #basically we will have a function that is kinda like lambda, where we take an image and return 
 # the cropped out image center and the cropped out image radar
-RADAR_IMAGE_DIMENSION = None
-CENTER_CROP_DIMENSION = [0, 0, 1920, 1080]
 
-conf_thres = 0.8  # Confidence
-iou_thres = 0.05  # NMS IoU threshold
-
-# Screen resolution
-x, y = (1920, 1080)
-re_x, re_y = (1920, 1080)
-imgsz = 640
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-half = device != 'cpu'
 
 class CSGOImageProcessor:
+    RADAR_IMAGE_DIMENSION = None
+    CENTER_CROP_DIMENSION = [0, 0, 1920, 1080]
 
+    conf_thres = 0.8  # Confidence
+    iou_thres = 0.05  # NMS IoU threshold
+
+    # Screen resolution
+    x, y = (1920, 1080)
+    re_x, re_y = (1920, 1080)
+    imgsz = 640
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    half = device != 'cpu'
     def __init__(self, image):
         self.image = image
         
@@ -45,7 +46,7 @@ class CSGOImageProcessor:
         
         # center_image = self.image[CENTER_CROP_DIMENSION]
         center_image = self.image
-        center_image = cv2.resize(center_image, (re_x, re_y))
+        center_image = cv2.resize(center_image, (CSGOImageProcessor.re_x, CSGOImageProcessor.re_y))
         return center_image
 
     def visualize_scan_center_image_for_enemy(self, center_image):
@@ -55,19 +56,19 @@ class CSGOImageProcessor:
         names = model.module.names if hasattr(model, 'module') else model.names
         
 
-        img = letterbox(center_image, imgsz, stride=stride)[0]
+        img = letterbox(center_image, CSGOImageProcessor.imgsz, stride=stride)[0]
 
         img = img.transpose((2, 0, 1))[::-1]
         img = np.ascontiguousarray(img)
 
-        img = torch.from_numpy(img).to(device)
-        img = img.half() if half else img.float()
+        img = torch.from_numpy(img).to(CSGOImageProcessor.device)
+        img = img.half() if CSGOImageProcessor.half else img.float()
         img /= 255.
         if len(img.shape) == 3:
             img = img[None]
             
         pred = model(img, augment=False,visualize=False)[0]
-        pred = non_max_suppression(pred, conf_thres, iou_thres, agnostic=False)
+        pred = non_max_suppression(pred, CSGOImageProcessor.conf_thres, CSGOImageProcessor.iou_thres, agnostic=False)
         aims = []
         for i, det in enumerate(pred):
             s = ''
@@ -90,15 +91,15 @@ class CSGOImageProcessor:
                 for i, det in enumerate(aims):
                     print('det', det)
                     _, x_center, y_center, width, height = det
-                    x_center, width = re_x * float(x_center), re_x * float(width)
-                    y_center, height = re_y * float(y_center), re_y * float(height)
+                    x_center, width = CSGOImageProcessor.re_x * float(x_center), CSGOImageProcessor.re_x * float(width)
+                    y_center, height = CSGOImageProcessor.re_y * float(y_center), CSGOImageProcessor.re_y * float(height)
                     top_left = (int(x_center - width / 2.), int(y_center - height / 2.))
                     bottom_right = (int(x_center + width / 2.)), (int(y_center + height / 2.))
                     color = (0, 255, 0)  # Show targets with green boxes
                     cv2.rectangle(center_image, top_left, bottom_right, color, thickness=3)
                     
         cv2.namedWindow('csgo-detect', cv2.WINDOW_NORMAL)
-        cv2.resizeWindow('csgo-detect', re_x // 3, re_y // 3)
+        cv2.resizeWindow('csgo-detect', CSGOImageProcessor.re_x // 3, CSGOImageProcessor.re_y // 3)
         cv2.imshow('csgo-detect', center_image)
         cv2.waitKey(0)
         # Press q to end the program
@@ -112,19 +113,19 @@ class CSGOImageProcessor:
         names = model.module.names if hasattr(model, 'module') else model.names
         
 
-        img = letterbox(center_image, imgsz, stride=stride)[0]
+        img = letterbox(center_image, CSGOImageProcessor.imgsz, stride=stride)[0]
 
         img = img.transpose((2, 0, 1))[::-1]
         img = np.ascontiguousarray(img)
 
-        img = torch.from_numpy(img).to(device)
-        img = img.half() if half else img.float()
+        img = torch.from_numpy(img).to(CSGOImageProcessor.device)
+        img = img.half() if CSGOImageProcessor.half else img.float()
         img /= 255.
         if len(img.shape) == 3:
             img = img[None]
             
         pred = model(img, augment=False,visualize=False)[0]
-        pred = non_max_suppression(pred, conf_thres, iou_thres, agnostic=False)
+        pred = non_max_suppression(pred, CSGOImageProcessor.conf_thres, CSGOImageProcessor.iou_thres, agnostic=False)
         aims = []
         for i, det in enumerate(pred):
             s = ''
@@ -143,10 +144,70 @@ class CSGOImageProcessor:
                     aim = ('%g ' * len(line)).rstrip() % line  # str
                     aim = aim.split(' ')  # list
                     aims.append(aim)  # Aim at the target
-        return aims,x,y
+        return aims,CSGOImageProcessor.x,CSGOImageProcessor.y
 
 
-     
+
+
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import sys
+import time
+import json
+
+
+class MyServer(HTTPServer):
+    def __init__(self, server_address, token, RequestHandler):
+        self.auth_token = token
+
+        super(MyServer, self).__init__(server_address, RequestHandler)
+
+        # You can store states over multiple requests in the server 
+        self.round_phase = None
+
+
+class MyRequestHandler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        length = int(self.headers['Content-Length'])
+        body = self.rfile.read(length).decode('utf-8')
+
+        self.parse_payload(json.loads(body))
+
+        self.send_header('Content-type', 'text/html')
+        self.send_response(200)
+        self.end_headers()
+
+    def is_payload_authentic(self, payload):
+        if 'auth' in payload and 'token' in payload['auth']:
+            return payload['auth']['token'] == server.auth_token
+        else:
+            return False
+
+    def parse_payload(self, payload):
+        # Ignore unauthenticated payloads
+        if not self.is_payload_authentic(payload):
+            return None
+
+        round_phase = self.get_round_phase(payload)
+
+        if round_phase != self.server.round_phase:
+            self.server.round_phase = round_phase
+            print('New round phase: %s' % round_phase)
+
+    def get_round_phase(self, payload):
+        if 'round' in payload and 'phase' in payload['round']:
+            return payload['round']['phase']
+        else:
+            return None
+
+    def log_message(self, format, *args):
+        """
+        Prevents requests from printing into the console
+        """
+        return
+
+
+
+
 
 if __name__ == '__main__':  
     # lets test the class
@@ -159,3 +220,14 @@ if __name__ == '__main__':
         center_image = csgo_image_processor.get_center_image()
         csgo_image_processor.visualize_scan_center_image_for_enemy(center_image)
         
+    server = MyServer(('localhost', 3000), 'MYTOKENHERE', MyRequestHandler)
+
+    print(time.asctime(), '-', 'CS:GO GSI Quick Start server starting')
+
+    try:
+        server.serve_forever()
+    except (KeyboardInterrupt, SystemExit):
+        pass
+
+    server.server_close()
+    print(time.asctime(), '-', 'CS:GO GSI Quick Start server stopped')
