@@ -5,3 +5,7 @@
 [submodule "Models/Visual/Yolov5ForCSGO"]
 	path = Models/Visual/Yolov5ForCSGO
 	url = https://github.com/BeanBois/Yolov5ForCSGO.git
+
+[submodule "src/Models/Visual/src/GameInterface/csgo-gsi-qsguide"]
+	path = src/Models/Visual/src/GameInterface/csgo-gsi-qsguide
+	url = https://github.com/BeanBois/csgo-gsi-qsguide.git
