@@ -14,6 +14,7 @@ print(df)
 print(df.shape)
 print(df.rows)
 print(bool(df['gameRounds']))
+
 class SuperNode():
 
     def __init__(self, x, y, z):
