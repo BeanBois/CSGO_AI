@@ -6,10 +6,10 @@
 	path = Models/Visual/Yolov5ForCSGO
 	url = https://github.com/BeanBois/Yolov5ForCSGO.git
 
-[submodule "src/Models/Visual/src/GameInterface/csgo-gsi-qsguide"]
-	path = src/Models/Visual/src/GameInterface/csgo-gsi-qsguide
+[submodule "src/GameInterface/csgo-gsi-qsguide"]
+	path = src/GameInterface/csgo-gsi-qsguide
 	url = https://github.com/BeanBois/csgo-gsi-qsguide.git
 	
-[submodule "src/GameInterface/src/GameInterface/csgo-gsi-python"]
-	path = src/GameInterface/src/GameInterface/csgo-gsi-python
+[submodule "src/GameInterface/csgo-gsi-python"]
+	path = src/GameInterface/csgo-gsi-python
 	url = https://github.com/BeanBois/csgo-gsi-python.git
