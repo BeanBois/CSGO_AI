@@ -7,6 +7,6 @@ from csgo_gsi_python import GSI_SERVER
 class Partial_State:
     
     def __init__(self) -> None:
-        pass
+        
     
     
