@@ -1,48 +1,66 @@
-#had helped from https://pyimagesearch.com/2021/11/01/training-an-object-detector-from-scratch-in-pytorch/
 import torch
 import os
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchvision.transforms import ToTensor
+from PIL import Image
 
-
-device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-print(f"using {device} device")
-
-class NeuralNetwork(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.flatten = nn.Flatten()
-        self.linear_reu_stack = nn.Sequential(
-            nn.Linear(28*28, 512),
-            nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Linear(512, 10),
-        )
-        
-    def forward(self, x):
-        x = self.flatten(x)
-        logits = self.linear_reu_stack(x)
-        return logits
-
+# This is a dataset wrapper for the CSGO bomb dataset
+# Our dataset has the following structure:
+    # the training images themselves <the training images, size H,W>
+    # target -- a dictionary with
+        # 'boxes' : the bounding box coordinates of the bomb in the image [x0 y0 x1 y1] (top left and bottom right corners)
+            #this comes from the enemy detection model
+            #format FloatTensor[N, 4] with values between 0 and H and 0 and W, N being # of bbox
+        # 'labels': the class label for each bounding box (1 for bombDefusing) <(Int64Tensor[N])
+        # 'area' : the area of the bounding box <Tensor[N]>
+        # 'image_id' : will be the rand_seed number we used to gen images. <Int64Tensor[1]> used during evaluation
+# images have the following names: Frame_<rand_seed>.npy
+# labels have the following names: Frame_<rand_seed>.txt
+# 
+class BombDataset(torch.utils.data.Dataset):
     
-model = NeuralNetwork().to(device)
-print(model)
 
-loss_fn = nn.CrossEntropyLoss()
-optimizers = torch.optim.SGD(model.parameters(), lr=1e-3)
-
-def train(dataloader, model, loss_fn, optimizers):
-    size = len(dataloader.dataset)
-    num_batches = len(dataloader)
-    model.train()
-    for batch, (X, y) in enumerate(dataloader):
-        X, y = X.to(device), y.to(device)
-        pred = model(X)
-        test_loss += loss_fn(pred, y)
-        correct += (pred.argmax(1) == y).type(torch.float).sum().item()
-    test_loss /= num_batches
-    correct /= size
-    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%  , Avg loss: {test_loss:>8f} \n")
+class BombDetectionModel(nn.Module):
+    def __init__(self):
+        
+    
+    #for trasnform here we can utilise the CSGOImageProcessor class (as lambda) in addition to the ToTensor() function
+    def __init__(self, root, transform=ToTensor()):
+        self.root = root
+        self.transform = transform
+        self.images = list(sorted(os.listdir(os.path.join(root, "images")))) #Training Images
+        self.labels = list(sorted(os.listdir(os.path.join(root, "labels")))) #Training Labels
+        #we find the la
+            
+    def __getitem__(self, idx):
+        img_path = os.path.join(self.root, "images", self.images[idx])
+        img = Image.open(img_path).convert("RGB")
+        boxes = []
+        for i in range(num_objs):
+            pos = np.where(masks[i])
+            xmin = np.min(pos[1])
+            xmax = np.max(pos[1])
+            ymin = np.min(pos[0])
+            ymax = np.max(pos[0])
+            boxes.append([xmin, ymin, xmax, ymax])
+        boxes = torch.as_tensor(boxes, dtype=torch.float32)
+        labels = torch.ones((num_objs,), dtype=torch.int64)
+        masks = torch.as_tensor(masks, dtype=torch.uint8)
+        image_id = torch.tensor([idx])
+        area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+        iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
+        target = {}
+        target["boxes"] = boxes
+        target["labels"] = labels
+        target["masks"] = masks
+        target["image_id"] = image_id
+        target["area"] = area
+        target["iscrowd"] = iscrowd
+        if self.transform is not None:
+            img = self.transform(img)
+        return img, target
+    
+    def __len__(self):
+        return len(self.images)
