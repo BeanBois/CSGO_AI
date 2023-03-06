@@ -89,7 +89,6 @@ class CSGOImageProcessor:
                     aims.append(aim)  # Aim at the target
             if len(aims):
                 for i, det in enumerate(aims):
-                    print('det', det)
                     _, x_center, y_center, width, height = det
                     x_center, width = CSGOImageProcessor.re_x * float(x_center), CSGOImageProcessor.re_x * float(width)
                     y_center, height = CSGOImageProcessor.re_y * float(y_center), CSGOImageProcessor.re_y * float(height)
@@ -106,6 +105,121 @@ class CSGOImageProcessor:
         if cv2.waitKey(1) & 0xFF == ord('q'):
             cv2.destroyAllWindows()
         return 0
+    
+    def label_img(self, center_image):
+        # scan the center image for an enemy
+        model = load_model()
+        stride = int(model.stride.max())
+        names = model.module.names if hasattr(model, 'module') else model.names
+        
+
+        img = letterbox(center_image, CSGOImageProcessor.imgsz, stride=stride)[0]
+
+        img = img.transpose((2, 0, 1))[::-1]
+        img = np.ascontiguousarray(img)
+
+        img = torch.from_numpy(img).to(CSGOImageProcessor.device)
+        img = img.half() if CSGOImageProcessor.half else img.float()
+        img /= 255.
+        if len(img.shape) == 3:
+            img = img[None]
+            
+        pred = model(img, augment=False,visualize=False)[0]
+        pred = non_max_suppression(pred, CSGOImageProcessor.conf_thres, CSGOImageProcessor.iou_thres, agnostic=False)
+        aims = []
+        for i, det in enumerate(pred):
+            s = ''
+            s += '%gx%g' % img.shape[2:]
+            gn = torch.tensor(center_image.shape)[[1, 0, 1, 0]]
+            if len(det):
+                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], center_image.shape).round()
+
+                for c in det[:, -1].unique():
+                    n = (det[:, -1] == c).sum()
+                    s += f"{n} {names[int(c)]}{'s' * (n > 1)},"
+
+                for *xyxy, conf, cls in reversed(det):
+                    xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
+                    line = (cls, *xywh)
+                    aim = ('%g ' * len(line)).rstrip() % line  # str
+                    aim = aim.split(' ')  # list
+                    aims.append(aim)  # Aim at the target
+            if len(aims):
+                first = True
+                for i, det in enumerate(aims):
+                    if first:
+                        first = False
+                        continue
+                    _, x_center, y_center, width, height = det
+                    x_center, width = CSGOImageProcessor.re_x * float(x_center), CSGOImageProcessor.re_x * float(width)
+                    y_center, height = CSGOImageProcessor.re_y * float(y_center), CSGOImageProcessor.re_y * float(height)
+                    top_left = (int(x_center - width / 2.), int(y_center - height / 2.))
+                    bottom_right = (int(x_center + width / 2.)), (int(y_center + height / 2.))
+                    color = (0, 255, 0)  # Show targets with green boxes
+                    cv2.rectangle(center_image, top_left, bottom_right, color, thickness=3)
+                
+        return center_image
+
+    def get_label(self, center_image):
+
+        #from https://stackoverflow.com/questions/56115874/how-to-convert-bounding-box-x1-y1-x2-y2-to-yolo-style-x-y-w-h
+        def yolobbox2bbox(x,y,w,h):
+            x1, y1 = x-w/2, y-h/2
+            x2, y2 = x+w/2, y+h/2
+            return x1, y1, x2, y2
+
+           
+        # scan the center image for an enemy
+        model = load_model()
+        stride = int(model.stride.max())
+        names = model.module.names if hasattr(model, 'module') else model.names
+        
+
+        img = letterbox(center_image, CSGOImageProcessor.imgsz, stride=stride)[0]
+
+        img = img.transpose((2, 0, 1))[::-1]
+        img = np.ascontiguousarray(img)
+
+        img = torch.from_numpy(img).to(CSGOImageProcessor.device)
+        img = img.half() if CSGOImageProcessor.half else img.float()
+        img /= 255.
+        if len(img.shape) == 3:
+            img = img[None]
+            
+        pred = model(img, augment=False,visualize=False)[0]
+        pred = non_max_suppression(pred, CSGOImageProcessor.conf_thres, CSGOImageProcessor.iou_thres, agnostic=False)
+        aims = []
+        for i, det in enumerate(pred):
+            s = ''
+            s += '%gx%g' % img.shape[2:]
+            gn = torch.tensor(center_image.shape)[[1, 0, 1, 0]]
+            if len(det):
+                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], center_image.shape).round()
+
+                for c in det[:, -1].unique():
+                    n = (det[:, -1] == c).sum()
+                    s += f"{n} {names[int(c)]}{'s' * (n > 1)},"
+
+                for *xyxy, conf, cls in reversed(det):
+                    xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
+                    line = (cls, *xywh)
+                    aim = ('%g ' * len(line)).rstrip() % line  # str
+                    aim = aim.split(' ')  # list
+                    aims.append(aim)  # Aim at the target
+            if len(aims):
+                first = True
+                for i, det in enumerate(aims):
+                    if first:
+                        first = False
+                        continue
+                    _, x_center, y_center, width, height = det
+                    x_center, y_center, width, height = float(x_center), float(y_center), float(width), float(height)
+                    return yolobbox2bbox(x_center, y_center, width, height)
+                    # color = (0, 255, 0)  # Show targets with green boxes
+                    # cv2.rectangle(center_image, top_left, bottom_right, color, thickness=3)
+
+        # return center_image
+    
     def scan_center_image_for_enemy(self, center_image):
         # scan the center image for an enemy
         model = load_model()
@@ -218,16 +332,17 @@ if __name__ == '__main__':
         csgo_image_processor.update_image(image)
         radar_image = csgo_image_processor.get_radar_image()
         center_image = csgo_image_processor.get_center_image()
-        csgo_image_processor.visualize_scan_center_image_for_enemy(center_image)
+        # csgo_image_processor.visualize_scan_center_image_for_enemy(center_image)
+        csgo_image_processor.get_label(center_image)
         
-    server = MyServer(('localhost', 3000), 'MYTOKENHERE', MyRequestHandler)
+    # server = MyServer(('localhost', 3000), 'MYTOKENHERE', MyRequestHandler)
 
-    print(time.asctime(), '-', 'CS:GO GSI Quick Start server starting')
+    # print(time.asctime(), '-', 'CS:GO GSI Quick Start server starting')
 
-    try:
-        server.serve_forever()
-    except (KeyboardInterrupt, SystemExit):
-        pass
+    # try:
+    #     server.serve_forever()
+    # except (KeyboardInterrupt, SystemExit):
+    #     pass
 
-    server.server_close()
-    print(time.asctime(), '-', 'CS:GO GSI Quick Start server stopped')
+    # server.server_close()
+    # print(time.asctime(), '-', 'CS:GO GSI Quick Start server stopped')

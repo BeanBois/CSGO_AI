@@ -4,7 +4,7 @@ import numpy as np
 import win32gui, win32ui, win32con, win32api
 import time
 import matplotlib.pyplot as plt
-
+import random
 from config import *
 
 def grab_window(hwin, game_resolution=(1024,768), SHOW_IMAGE=False,NORMAL_IMAGE=False):
@@ -106,6 +106,24 @@ def grab_window(hwin, game_resolution=(1024,768), SHOW_IMAGE=False,NORMAL_IMAGE=
 
 
 
+def screen_record():
+
+    time_start = time.time()
+    n_grabs=20000
+    hwin = win32gui.FindWindow(None,'Counter-Strike: Global Offensive - Direct3D 9')
+    frames = []
+    for i in range(n_grabs):
+        img = grab_window(hwin, game_resolution=(1024,768), SHOW_IMAGE=False,NORMAL_IMAGE=True)
+        frames.append(img)
+        if cv2.waitKey(0):
+            print('quitting')
+            break
+    ran = random.randint(0,10000)
+    frames_arr = np.array(frames)
+    np.save(f'./csgo_bomb_images/frames_{ran}.npy',frames_arr)
+    print('saved')
+    return
+
 def fps_capture_test():
 
     if False:
@@ -118,9 +136,9 @@ def fps_capture_test():
 
     time_start = time.time()
     n_grabs=20000
-    hwin = win32gui.FindWindow(None,'Counter-Strike: Global Offensive')
+    hwin = win32gui.FindWindow(None,'Counter-Strike: Global Offensive - Direct3D 9')
     for i in range(n_grabs):
-        img_small = grab_window(hwin, game_resolution=(1024,768), SHOW_IMAGE=False)
+        img_small = grab_window(hwin, game_resolution=(1024,768), SHOW_IMAGE=False,NORMAL_IMAGE=True)
 
         if True:
             # because we use a shrunk image for input into the NN
@@ -133,7 +151,7 @@ def fps_capture_test():
             cv2.imshow('resized',resized) 
 
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(0):
             cv2.destroyAllWindows()
             break
 
@@ -148,6 +166,10 @@ def fps_capture_test():
 
 
 if __name__ == "__main__":
-    fps_capture_test()
+    while True:
+        input('press enter to start recording (ctrl+c to exit)')
+        print('recording')
+        screen_record()
+    # fps_capture_test()
 
 
