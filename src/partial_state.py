@@ -219,7 +219,6 @@ class CSGO_Env_Utils:
         keyboard_controller.release('~')
         print('command sent')
         
-            
     def navigate(path, keyboard_controller, mouse_controller, server, player = "player"):
         not_reached = True
         path.append(None)
@@ -259,9 +258,7 @@ class CSGO_Env_Utils:
             if np.all(curr_loc == next_node):
                 next_node = path.pop(0)
     
-    def _update_mouse_pos_info(self, mouse_controller):
-        
-            
+
     def reset_game():
         pass
     
@@ -592,13 +589,28 @@ class CSGO_Env(gym.Env):
     
     def reset(self):
         CSGO_Env_Utils.reset_game()
-        CSGO_Env_Utils.start_game()
-        
+        CSGO_Env_Utils.start_game()     
 
 
-
-# if __name__ == '__main__':
-    
+if __name__ == '__main__':
+    MAP_NAME = 'de_dust2'
+    MAP_DATA = NAV_CSV[NAV_CSV["mapName"] == MAP_NAME]
+    index = 0
+    polygons = []
+    vertices = []
+    for data in MAP_DATA:
+        x_range = np.arange(int(data["northWestX"]), int(data["southEastX"]), 1)
+        y_range = np.arange(int(data["northWestY"]), int(data["southEastY"]), 1)
+        z_range = np.arange(int(data["northWestZ"]), int(data["southEastZ"]), 1)
+        v = CSGO_Env_Utils.cartesian_product(x_range, y_range, z_range)
+        for point in v:
+            vertices.append(point)
+        polygons.append(tuple(range(index, index+len(vertices))))
+        index += len(vertices)
+    navmesh = pf.PathFinder(vertices, polygons)
+    keyboard_controller = keyboard.Controller()
+    mouse_controller = mouse.Controller()
+    CSGO_Env_Utils.start_game( MAP_NAME, MAP_DATA, navmesh, keyboard_controller, mouse_controller, GSI_SERVER_TRAINING)
 ######BETA CODE########
 """
 class Partial_State():
