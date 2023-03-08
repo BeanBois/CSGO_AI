@@ -125,6 +125,11 @@ class CSGO_Env(gym.Env):
             Discrete(8), #0 for walk, 1 for run, 2 for jump, 3 for crouch, 4 for stay, 5 for prone, 6 for shoot, 7 for aim
             Tuple(Discrete(1920), Discrete(1080)), #Mouse movement, controlling mouse location on screen basically
         )
-        
-    def step(self, action):
+    
+    #here is where we link the env to the game
+    #TODO: link inputs <data> from the game
+    #TODO: link outputs <action> to the game
+    #TODO: get effect of action
+    #TODO: get reward
+    def step(self, action ):
         

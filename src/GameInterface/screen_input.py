@@ -118,7 +118,7 @@ def screen_record():
         if cv2.waitKey(0):
             print('quitting')
             break
-    ran = random.randint(0,10000)
+    ran = random.randint(0,99999999)
     frames_arr = np.array(frames)
     np.save(f'./csgo_bomb_images/frames_{ran}.npy',frames_arr)
     print('saved')
