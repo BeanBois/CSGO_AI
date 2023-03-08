@@ -3,6 +3,7 @@ from gym import spaces
 from gym.spaces import Dict, Sequence, Tuple, Discrete, Box
 from awpy.data import NAV_CSV
 from numpy import np
+import random
 import threading as th
 #import servers, they have started already btw
 from csgo_gsi_python import TRAINING
@@ -15,9 +16,14 @@ from pynput import mouse, keyboard
 from pynput.mouse import Button
 from pynput.keyboard import Key
 
+#path finding algorithm
+import pathfinder as pf
+
+
 TIME_STEPS = 40
 
 class CSGO_Env_Utils:
+    
     
     def location_domain(max_x, min_x, max_y, min_y, max_z, min_z):
         return Box(
@@ -86,11 +92,188 @@ class CSGO_Env_Utils:
         })
 
 
-    def initialise_game():
-        pass
+    #Use the csgo command console to configure 
+    def configure_game(map_name, map_data, nav_mesh, keyboard_controller, mouse_controller, server):
+        
+        #configure game settings
+        CSGO_Env_Utils.csgo_command('sv_cheats', '1') #allow cheats
+        CSGO_Env_Utils.csgo_command('mp_buy_allow_grenades', '0') #dont allow grenades or any utilities
+        CSGO_Env_Utils.csgo_command('mp_c4timer', '40') #Set bomb explode timer 
+        CSGO_Env_Utils.csgo_command('mp_ct_default_primary', 'weapon_ak47') # Set CT default primary weapon
+        CSGO_Env_Utils.csgo_command('mp_ct_default_secondary', 'weapon_ak47') # Set CT default secondary weapon
+        CSGO_Env_Utils.csgo_command('mp_t_default_primary', 'weapon_ak47') # Set T default primary weapon
+        CSGO_Env_Utils.csgo_command('mp_t_default_secondary', 'weapon_ak47') # Set T default secondary weapon
+        
+        #setting what weapons to can be used, for which team
+        CSGO_Env_Utils.csgo_command('mp_weapons_allow_heavy', '-1' ) #-1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
+        CSGO_Env_Utils.csgo_command('mp_weapons_allow_pistols', '-1') #-1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
+        CSGO_Env_Utils.csgo_command('mp_weapons_allow_rifles', '-1') #-1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
+        CSGO_Env_Utils.csgo_command('mp_weapons_allow_smgs', '-1') #-1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
+        #ff_damage_bullet_penetration 0/1 to allow bullet penetration
+        
+        #interesting command mp_weapon_self_inflict_amount [_], 0 for no self inflict damage, 1 for self inflict damage for mimssing shot
+        #intersting command mp_plant_c4_anywhere to plant anywhere
+        CSGO_Env_Utils.csgo_command('mp_give_player_c4', '1') # Give T bomb
+        CSGO_Env_Utils.csgo_command('mp_halftime', '0') # dont switch team in half time
+        
+        #sound distance
+        play_sound_distance = 1000
+        # CSGO_Env_Utils.csgo_command('play_distance', f'{play_sound_distance}') #dont show sound
+        #interesting command -- playgmaesound [Sound] can use to train sound model
+        #sound_device_list to list all sound device
+        
+        #radarvisdistance [Distance
+        
+        
+        #bots
+        #CSGO_Env_Utils.csgo_command('bot_goto_selected', '0') #navigation
+        #CSGO_Env_Utils.csgo_command('bot_goto_mark', '0') #navigation
+        
+        CSGO_Env_Utils.csgo_command('bot_allow_grenades', '0') #dont allow grenades or any utilities
+        CSGO_Env_Utils.csgo_command('bot_allow_machine_guns', '0') #dont allow grenades or any utilities
+        CSGO_Env_Utils.csgo_command('bot_allow_pistols', '0') #dont allow grenades or any utilities
+        CSGO_Env_Utils.csgo_command('bot_allow_rifles', '0') #dont allow grenades or any utilities
+        CSGO_Env_Utils.csgo_command('bot_allow_snipers', '0') #dont allow grenades or any utilities
+        CSGO_Env_Utils.csgo_command('bot_allow_shotguns', '0') #dont allow grenades or any utilities
+        CSGO_Env_Utils.csgo_command('bot_allow_sub_machine_guns', '0') #dont allow grenades or any utilities
+        
+        
+        
+        CSGO_Env_Utils.csgo_command('notarget') # bot ignores player
+        CSGO_Env_Utils.csgo_command('mp_random_spawn', '3') # random spawn for enemy bot, not agent
+        CSGO_Env_Utils.csgo_command('mp_random_spawn_los', '1') # random spawn for enemy bot to ensure that enemy bot not in sight of agent
+        #CSGO_Env_Utils.csgo_command('bot_max_vision_distance_override', '1', '30') # random spawn for enemy bot, not agent
+        CSGO_Env_Utils.csgo_command('custom_bot_difficulty', '2') # [0:4] 0 :EASIEST, 1: EASY, 2: NORMAL, 3: HARD, 4: HARDEST
+        CSGO_Env_Utils.csgo_command('bot_freeze', '1') # 1 bot              
+        CSGO_Env_Utils.csgo_command('bot_loadout', 'weapon') # sets the bot loadout                        
+                   
+
+    def start_game(map_name, map_data, nav_mesh, keyboard_controller, mouse_controller, server):
+        #choose bombsite
+        bombsite_choice = random.choice(['BombsiteA', 'BombSiteB'])
+        spawn = map_data['areaName'] == 'TSpawn'
+        bombsite = map_data['areaName'] == bombsite_choice
+        path = nav_mesh.search_path(start = (int(spawn['northWestX']), int(spawn['northWestY']), int(spawn['northWestZ'])),
+                                   finish = (int(bombsite['northWestX']), int(bombsite['northWestY']), int(bombsite['northWestZ'])),
+                                    )
+        bomb_position = Box(low = np.array([bombsite['northWestX'], bombsite['northWestY']]), 
+                            high = np.array([bombsite['southEastX'], bombsite['southEastY']]), 
+                            dtype = np.int32).sample()
+       
+        path.append(np.asarray(bomb_position))
+        
+        #first check if the player has a bomb
+        
+
+        
+        #navigating to bomb site
+        CSGO_Env_Utils.navigate(path, keyboard_controller, mouse_controller, server)
+        
+        #ensure that the player is at the bomb site
+        player_info = server.get_info(player)
+        curr_loc = np.fromstring(player_info['location'], dtype = np.int32, sep = ',')
+        assert (
+            curr_loc[0] >= bombsite['northWestX'] and curr_loc[0] <= bombsite['southEastX'] and\
+            curr_loc[1] >= bombsite['northWestY'] and curr_loc[1] <= bombsite['southEastY'] and\
+            curr_loc[2] >= bombsite['northWestZ'] and curr_loc[2] <= bombsite['southEastZ']
+        )
+
+        #plant bomb
+        
+        #player switch to bomb
+        keyboard_controller.press('5')
+        
+        
+        #initialise bomb plant
+        with mouse_controller.pressed(Button.left):
+            round_status = server.get_info('round')
+            while 'bomb' not in round_status.keys():
+                round_status = server.get_info('round')
+                if 'bomb' in round_status.keys():
+                    if round_status['bomb'] == 'planted':
+                        break
+        
+        print('bomb planted')   
     
+    def csgo_command(command, keyboard_controller ,*args):
+        #open terminal
+        keyboard_controller.press('~')
+        keyboard_controller.release('~')
+        for char in command:
+            keyboard_controller.press(char)
+            keyboard_controller.release(char)
+        
+        for i in range(len(args)):
+            keyboard_controller.press(Key.space)
+            keyboard_controller.release(Key.space)
+            for char in args[i]:
+                keyboard_controller.press(char)
+                keyboard_controller.release(char)
+                
+        #send command
+        keyboard_controller.press(Key.enter)
+        keyboard_controller.release(Key.enter)
+
+        #close terminal 
+        keyboard_controller.press('~')
+        keyboard_controller.release('~')
+        print('command sent')
+        
+            
+    def navigate(path, keyboard_controller, mouse_controller, server, player = "player"):
+        not_reached = True
+        path.append(None)
+        next_node = path.pop(0)
+        while(not_reached):
+            if next_node is None: #reached destination
+                not_reached = False
+            player_info = server.get_info(player)
+            curr_loc = np.fromstring(player_info['location'], dtype = np.int32, sep = ',')
+            forward = np.fromstring(player_info['forward'], dtype = np.float32, sep = ',') 
+            
+            #find difference between current location and next node
+            diff = next_node - curr_loc
+            
+            #normalize values 
+            norm_diff = diff / np.linalg.norm(diff)
+            
+            #find orientation of next node 
+            while(np.dot(forward, norm_diff) < 0.99):
+                mouse_pos = mouse_controller.position
+                mouse_pos = (mouse_pos[0], mouse_pos[1] + 1)
+                mouse.position = mouse_pos
+                player_info = server.get_info(player)
+                forward = np.fromstring(player_info['forward'], dtype = np.float32, sep = ',') 
+                
+                
+            #hard forward walk to next node
+            keyboard_controller.press('w')
+            while(np.dot(curr_loc, next_node) < 0.99):
+                player_info = server.get_info(player)
+                curr_loc = np.fromstring(player_info['location'], dtype = np.int32, sep = ',')
+            
+            keyboard_controller.release('w')
+            
+            #by here we should have reached the node
+            
+            if np.all(curr_loc == next_node):
+                next_node = path.pop(0)
+    
+    def _update_mouse_pos_info(self, mouse_controller):
+        
+            
     def reset_game():
         pass
+    
+    #function from https://stackoverflow.com/questions/11144513/cartesian-product-of-x-and-y-array-points-into-single-array-of-2d-points
+    def cartesian_product(*arrays):
+        la = len(arrays)
+        dtype = np.result_type(*arrays)
+        arr = np.empty([len(a) for a in arrays] + [la], dtype=dtype)
+        for i, a in enumerate(np.ix_(*arrays)):
+            arr[...,i] = a
+        return arr.reshape(-1, la)
+    
 class CSGO_Env(gym.Env):
     MAP_NAME = 'de_dust2'
     MAP_DATA = NAV_CSV[NAV_CSV["mapName"] == MAP_NAME]
@@ -109,14 +292,26 @@ class CSGO_Env(gym.Env):
         # self._prev_action = None
         self.observation_space = CSGO_Env_Utils.observation_space_domain(self.max_x, self.min_x, self.max_y, self.min_y, self.max_z, self.min_z, self.SCREEN_HEIGHT, self.SCREEN_WIDTH)
         self.action_space = CSGO_Env_Utils.action_space_domain(self.SCREEN_HEIGHT, self.SCREEN_WIDTH)
+        CSGO_Env_Utils.start_game(self.MAP_NAME, self.MAP_DATA, self.nav_mesh, self.keyboard_controller, self.mouse_controller, self.server)
         
     def _init_para(self):
         self.min_x, self.max_x = None, None
         self.min_y, self.max_y = None, None
         self.minz, self.max_z = None, None
+        vertices = []
+        polygons = []
         self.mouse_controller = mouse.Controller()
         self.keyboard_controller = keyboard.Controller()
+        index=0
         for data in CSGO_Env.MAP_DATA:
+            x_range = np.arange(int(data["northWestX"]), int(data["southEastX"]), 1)
+            y_range = np.arange(int(data["northWestY"]), int(data["southEastY"]), 1)
+            z_range = np.arange(int(data["northWestZ"]), int(data["southEastZ"]), 1)
+            v = CSGO_Env_Utils.cartesian_product(x_range, y_range, z_range)
+            for point in v:
+                vertices.append(point)
+            polygons.append(tuple(range(index, index+len(vertices))))
+            index += len(vertices)
             if self.min_x is None or self.min_x > int(data["northWestX"]):
                 self.min_x = int(data["northWestX"])
                 
@@ -134,7 +329,9 @@ class CSGO_Env(gym.Env):
                 
             if self.max_z is None or self.max_z < int(data["southEastZ"]):
                 self.max_z = int(data["southEastZ"])
-
+        self.navmesh = pf.PathFinder(vertices, polygons)
+        #then initialise the game
+          
     #(observation, reward, done, info)
     #each step corresponds to 0.1 seconds (OBSERVING_TIME or ACTION_TIME)
     def step(self, action):
@@ -394,9 +591,14 @@ class CSGO_Env(gym.Env):
         }
     
     def reset(self):
+        CSGO_Env_Utils.reset_game()
+        CSGO_Env_Utils.start_game()
         
 
-        
+
+
+# if __name__ == '__main__':
+    
 ######BETA CODE########
 """
 class Partial_State():
