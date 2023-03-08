@@ -1,4 +1,4 @@
-from .server import GSIServer
+from .server import GSIServer, GSIServerSpectator
 
 #TODO: NOTE HERE THERES A CONSTANT
 TRAINING = True
@@ -14,6 +14,5 @@ if TRAINING:
 #YOU NEED A SEPARATE CSGO STEAM ACCOUNT FOR THIS
 #TOKEN TO BE REPLACED HERE WILL BE THE SPECTATOR TOKEN
 
-
     #TODO: replace MYTOKENHERE with your token
-    GSI_SERVER_TRAINING = GSIServer(("localhost", 3000), "MYTOKENHERE")
+    GSI_SERVER_TRAINING = GSIServerSpectator(("localhost", 3000), "MYTOKENHERE")
