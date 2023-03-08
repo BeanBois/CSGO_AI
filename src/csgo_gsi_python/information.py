@@ -1,6 +1,10 @@
 """
 Classes to represent Player information
 """
+
+
+
+        
 class Player:
     """Class to store player information"""
     def __init__(self):
@@ -16,6 +20,7 @@ class Player:
         self.state = State()
         self.match_stats = MatchStats()
         self.weapons = {}
+
 
 class State:
     """Class to store player state information"""
@@ -103,6 +108,10 @@ class Bomb:
         self.position = None
         self.state = None
         self.countdown = None
+    
+    def get_time(self):
+        if self.state != "planted":
+            return None
 
 
 """

@@ -48,6 +48,48 @@ class GSIServer(HTTPServer):
             print(E)
             return False
 
+
+class GSIServerSpectator(HTTPServer):
+    def __init__(self, server_address, auth_token):
+        super(GSIServerSpectator, self).__init__(server_address, RequestHandler)
+
+        self.auth_token = auth_token
+        self.gamestate = gamestate.CompleteGameState()
+        self.parser = payloadparser.PayloadParser()
+        
+        self.running = False
+
+    def start_server(self):
+        try:
+            thread = Thread(target=self.serve_forever)
+            thread.start()
+            first_time = True
+            while self.running == False:
+                if first_time == True:
+                    print("CS:GO GSI Server starting..")
+                first_time = False
+        except:
+            print("Could not start server.")
+
+    def get_info(self, target, *argv):
+        try:
+            if len(argv) == 0:
+                state = attrgetter(f"{target}")(self.gamestate)
+            elif len(argv) == 1:
+                state = attrgetter(f"{target}.{argv[0]}")(self.gamestate)
+            elif len(argv) == 2:
+                state = attrgetter(f"{target}.{argv[0]}")(self.gamestate)[f"{argv[1]}"]
+            else:
+                print("Too many arguments.")
+                return False
+            if "object" in str(state):
+                return vars(state)
+            else:
+                return state
+        except Exception as E:
+            print(E)
+            return False
+
 class RequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers["Content-Length"])
