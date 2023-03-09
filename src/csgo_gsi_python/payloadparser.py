@@ -1,14 +1,16 @@
 # import gamestate
-import gamestate
+# import gamestate
+from .gamestate import CompleteGameState, GameState
 import json
-import information
+# import information
+from .information import Player, Map, Provider, PhaseCountdowns, Bomb, Round
 
 class PayloadParser:
     def parse_payload(self, payload, gamestate):
         for item in payload:
             if item == 'allplayers':
                 for i in payload[item]:
-                    getattr(gamestate,item)[i] = information.Player()
+                    getattr(gamestate,item)[i] = Player()
                     for j in payload[item][i]:
                         try:
                             setattr(

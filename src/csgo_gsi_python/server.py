@@ -52,7 +52,6 @@ class GSIServer(HTTPServer):
 class GSIServerSpectator(HTTPServer):
     def __init__(self, server_address, auth_token):
         super(GSIServerSpectator, self).__init__(server_address, RequestHandler)
-
         self.auth_token = auth_token
         self.gamestate = gamestate.CompleteGameState()
         self.parser = payloadparser.PayloadParser()

@@ -2,7 +2,7 @@ import gym
 from gym import spaces
 from gym.spaces import Dict, Sequence, Tuple, Discrete, Box
 from awpy.data import NAV_CSV
-from numpy import np
+import numpy as np
 import random
 import threading as th
 #import servers, they have started already btw
@@ -86,7 +86,7 @@ class CSGO_Env_Utils:
                 'location' : CSGO_Env_Utils.location_domain(max_x, min_x, max_y, min_y, max_z, min_z),
                 'forward' : CSGO_Env_Utils.forward(),
             },
-            'bomb_defusing' : Tuple(spaces.Discrete(2), spaces.Discrete(TIME_STEPS))#fixed, 0 for not defusing, 1 for defusing
+            'bomb_defusing' : Tuple(spaces.Discrete(2), spaces.Discrete(TIME_STEPS)),#fixed, 0 for not defusing, 1 for defusing
             'current_time' : spaces.Discrete(TIME_STEPS),
             'winner' : spaces.Discrete(3), # 0 for ongoing, 1 for agent win, 2 for enemy win
         })
@@ -150,11 +150,12 @@ class CSGO_Env_Utils:
 
     def start_game(map_name, map_data, nav_mesh, keyboard_controller, mouse_controller, server):
         #choose bombsite
-        bombsite_choice = random.choice(['BombsiteA', 'BombSiteB'])
-        spawn = map_data['areaName'] == 'TSpawn'
-        bombsite = map_data['areaName'] == bombsite_choice
-        path = nav_mesh.search_path(start = (int(spawn['northWestX']), int(spawn['northWestY']), int(spawn['northWestZ'])),
-                                   finish = (int(bombsite['northWestX']), int(bombsite['northWestY']), int(bombsite['northWestZ'])),
+        bombsite_choice = random.choice(['BombsiteA', 'BombsiteB'])
+        spawn = map_data[map_data['areaName'] == 'TSpawn'].sample()
+        bombsite = map_data[map_data['areaName'] == bombsite_choice].sample()
+        
+        path = nav_mesh.search_path(start = tuple([float(spawn['northWestX']), float(spawn['northWestY']), float(spawn['northWestZ'])]),
+                                   finish = tuple([float(bombsite['northWestX']), float(bombsite['northWestY']), float(bombsite['northWestZ'])]),
                                     )
         bomb_position = Box(low = np.array([bombsite['northWestX'], bombsite['northWestY']]), 
                             high = np.array([bombsite['southEastX'], bombsite['southEastY']]), 
@@ -170,7 +171,8 @@ class CSGO_Env_Utils:
         CSGO_Env_Utils.navigate(path, keyboard_controller, mouse_controller, server)
         
         #ensure that the player is at the bomb site
-        player_info = server.get_info(player)
+        player_info = server.get_info("player")
+        print('player info : ', player_info)
         curr_loc = np.fromstring(player_info['location'], dtype = np.int32, sep = ',')
         assert (
             curr_loc[0] >= bombsite['northWestX'] and curr_loc[0] <= bombsite['southEastX'] and\
@@ -226,7 +228,10 @@ class CSGO_Env_Utils:
         while(not_reached):
             if next_node is None: #reached destination
                 not_reached = False
-            player_info = server.get_info(player)
+            
+            #rmb to enclose in try block
+            player_info = server.get_info("player")
+            print('player info : ', player_info)
             curr_loc = np.fromstring(player_info['location'], dtype = np.int32, sep = ',')
             forward = np.fromstring(player_info['forward'], dtype = np.float32, sep = ',') 
             
@@ -241,14 +246,14 @@ class CSGO_Env_Utils:
                 mouse_pos = mouse_controller.position
                 mouse_pos = (mouse_pos[0], mouse_pos[1] + 1)
                 mouse.position = mouse_pos
-                player_info = server.get_info(player)
+                player_info = server.get_info('player')
                 forward = np.fromstring(player_info['forward'], dtype = np.float32, sep = ',') 
                 
                 
             #hard forward walk to next node
             keyboard_controller.press('w')
             while(np.dot(curr_loc, next_node) < 0.99):
-                player_info = server.get_info(player)
+                player_info = server.get_info('player')
                 curr_loc = np.fromstring(player_info['location'], dtype = np.int32, sep = ',')
             
             keyboard_controller.release('w')
@@ -301,31 +306,31 @@ class CSGO_Env(gym.Env):
         self.keyboard_controller = keyboard.Controller()
         index=0
         for data in CSGO_Env.MAP_DATA:
-            x_range = np.arange(int(data["northWestX"]), int(data["southEastX"]), 1)
-            y_range = np.arange(int(data["northWestY"]), int(data["southEastY"]), 1)
-            z_range = np.arange(int(data["northWestZ"]), int(data["southEastZ"]), 1)
+            x_range = np.arange(float(data["northWestX"]), float(data["southEastX"]), 1)
+            y_range = np.arange(float(data["northWestY"]), float(data["southEastY"]), 1)
+            z_range = np.arange(float(data["northWestZ"]), float(data["southEastZ"]), 1)
             v = CSGO_Env_Utils.cartesian_product(x_range, y_range, z_range)
             for point in v:
                 vertices.append(point)
             polygons.append(tuple(range(index, index+len(vertices))))
             index += len(vertices)
-            if self.min_x is None or self.min_x > int(data["northWestX"]):
-                self.min_x = int(data["northWestX"])
+            if self.min_x is None or self.min_x > float(data["northWestX"]):
+                self.min_x = float(data["northWestX"])
                 
-            if self.max_x is None or self.max_x < int(data["southEastX"]):
-                self.max_x = int(data["southEastX"])
+            if self.max_x is None or self.max_x < float(data["southEastX"]):
+                self.max_x = float(data["southEastX"])
                 
-            if self.min_y is None or self.min_y > int(data["northWestY"]):
-                self.min_y = int(data["northWestY"])
+            if self.min_y is None or self.min_y > float(data["northWestY"]):
+                self.min_y = float(data["northWestY"])
                 
-            if self.max_y is None or self.max_y < int(data["southEastY"]):
-                self.max_y = int(data["southEastY"])
+            if self.max_y is None or self.max_y < float(data["southEastY"]):
+                self.max_y = float(data["southEastY"])
                 
-            if self.min_z is None or self.min_z > int(data["northWestZ"]):
-                self.min_z = int(data["northWestZ"])
+            if self.min_z is None or self.min_z > float(data["northWestZ"]):
+                self.min_z = float(data["northWestZ"])
                 
-            if self.max_z is None or self.max_z < int(data["southEastZ"]):
-                self.max_z = int(data["southEastZ"])
+            if self.max_z is None or self.max_z < float(data["southEastZ"]):
+                self.max_z = float(data["southEastZ"])
         self.navmesh = pf.PathFinder(vertices, polygons)
         #then initialise the game
           
@@ -598,15 +603,17 @@ if __name__ == '__main__':
     index = 0
     polygons = []
     vertices = []
-    for data in MAP_DATA:
-        x_range = np.arange(int(data["northWestX"]), int(data["southEastX"]), 1)
-        y_range = np.arange(int(data["northWestY"]), int(data["southEastY"]), 1)
-        z_range = np.arange(int(data["northWestZ"]), int(data["southEastZ"]), 1)
+    for i in MAP_DATA.index:
+        data = MAP_DATA.loc[i]  
+        x_range = np.array([float(data["northWestX"]), float(data["southEastX"])])
+        y_range = np.array([float(data["northWestY"]), float(data["southEastY"])])
+        z_range = np.array([float(data["northWestZ"]), float(data["southEastZ"])])
         v = CSGO_Env_Utils.cartesian_product(x_range, y_range, z_range)
         for point in v:
+            point = tuple(point)
             vertices.append(point)
-        polygons.append(tuple(range(index, index+len(vertices))))
-        index += len(vertices)
+        polygons.append([i for i in range(index, index + 8 )])
+        index += 8
     navmesh = pf.PathFinder(vertices, polygons)
     keyboard_controller = keyboard.Controller()
     mouse_controller = mouse.Controller()

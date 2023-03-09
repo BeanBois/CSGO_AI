@@ -5,7 +5,7 @@ TRAINING = True
 
 
 #TODO: replace MYTOKENHERE with your token
-GSI_SERVER = GSIServer(("localhost", 3000), "MYTOKENHERE")
+# GSI_SERVER = GSIServer(("localhost", 3000), "MYTOKENHERE")
 
 
 
@@ -15,4 +15,5 @@ if TRAINING:
 #TOKEN TO BE REPLACED HERE WILL BE THE SPECTATOR TOKEN
 
     #TODO: replace MYTOKENHERE with your token
-    GSI_SERVER_TRAINING = GSIServerSpectator(("localhost", 3000), "MYTOKENHERE")
+    GSI_SERVER_TRAINING = GSIServerSpectator(("localhost", 3000), "Q79v5tcxVQ8u")
+    GSI_SERVER_TRAINING.start_server()
