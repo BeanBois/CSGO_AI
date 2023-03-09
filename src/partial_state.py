@@ -12,9 +12,9 @@ import time
 #     from csgo_gsi_python import GSI_SERVER_TRAINING
 from gsi_server import get_info
 #importing input library
-from pynput import mouse, keyboard
-from pynput.mouse import Button
-from pynput.keyboard import Key
+# from pynput import mouse, keyboard
+# from pynput.mouse import Button
+# from pynput.keyboard import Key
 
 #path finding algorithm
 import pathfinder as pf
@@ -86,11 +86,10 @@ class CSGO_Env_Utils:
                 'location' : CSGO_Env_Utils.location_domain(max_x, min_x, max_y, min_y, max_z, min_z),
                 'forward' : CSGO_Env_Utils.forward(),
             },
-            'bomb_defusing' : Tuple(spaces.Discrete(2), spaces.Discrete(TIME_STEPS)),#fixed, 0 for not defusing, 1 for defusing
+            'bomb_defusing' : Tuple(spaces.Discrete(2), spaces.Discrete(TIME_STEPS)), #fixed, 0 for not defusing, 1 for defusing
             'current_time' : spaces.Discrete(TIME_STEPS),
             'winner' : spaces.Discrete(3), # 0 for ongoing, 1 for agent win, 2 for enemy win
         })
-
 
     #Use the csgo command console to configure 
     def configure_game(map_name, map_data, nav_mesh, keyboard_controller, mouse_controller):

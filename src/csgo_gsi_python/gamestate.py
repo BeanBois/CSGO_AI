@@ -1,5 +1,6 @@
 # import information
-from .information import Player, Map, Provider, PhaseCountdowns, Bomb, Round
+# import information
+from . import information
 class GameState:
     def __init__(self):
         self.player = Player()
