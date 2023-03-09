@@ -16,4 +16,3 @@ if TRAINING:
 
     #TODO: replace MYTOKENHERE with your token
     GSI_SERVER_TRAINING = GSIServerSpectator(("localhost", 3000), "Q79v5tcxVQ8u")
-    GSI_SERVER_TRAINING.start_server()

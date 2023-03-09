@@ -8,9 +8,9 @@ import threading as th
 #import servers, they have started already btw
 from csgo_gsi_python import TRAINING
 import time
-if TRAINING:
-    from csgo_gsi_python import GSI_SERVER_TRAINING
-
+# if TRAINING:
+#     from csgo_gsi_python import GSI_SERVER_TRAINING
+from gsi_server import get_info
 #importing input library
 from pynput import mouse, keyboard
 from pynput.mouse import Button
@@ -93,7 +93,7 @@ class CSGO_Env_Utils:
 
 
     #Use the csgo command console to configure 
-    def configure_game(map_name, map_data, nav_mesh, keyboard_controller, mouse_controller, server):
+    def configure_game(map_name, map_data, nav_mesh, keyboard_controller, mouse_controller):
         
         #configure game settings
         CSGO_Env_Utils.csgo_command('sv_cheats', '1') #allow cheats
@@ -148,7 +148,7 @@ class CSGO_Env_Utils:
         CSGO_Env_Utils.csgo_command('bot_loadout', 'weapon') # sets the bot loadout                        
                    
 
-    def start_game(map_name, map_data, nav_mesh, keyboard_controller, mouse_controller, server):
+    def start_game(map_name, map_data, nav_mesh, keyboard_controller, mouse_controller, ): #server):
         #choose bombsite
         bombsite_choice = random.choice(['BombsiteA', 'BombsiteB'])
         spawn = map_data[map_data['areaName'] == 'TSpawn'].sample()
@@ -168,12 +168,18 @@ class CSGO_Env_Utils:
 
         
         #navigating to bomb site
-        CSGO_Env_Utils.navigate(path, keyboard_controller, mouse_controller, server)
+        # CSGO_Env_Utils.navigate(path, keyboard_controller, mouse_controller, server)
+        CSGO_Env_Utils.navigate(path, keyboard_controller, mouse_controller)
+
         
         #ensure that the player is at the bomb site
-        player_info = server.get_info("player")
+        # player_info = server.get_info("player")
+        player_info = get_info("player")
+
         print('player info : ', player_info)
-        curr_loc = np.fromstring(player_info['location'], dtype = np.int32, sep = ',')
+        curr_loc = np.array(player_info['position'].split(','), dtype = np.float32)
+
+        # curr_loc = np.fromstring(player_info['location'], dtype = np.int32, sep = ',')
         assert (
             curr_loc[0] >= bombsite['northWestX'] and curr_loc[0] <= bombsite['southEastX'] and\
             curr_loc[1] >= bombsite['northWestY'] and curr_loc[1] <= bombsite['southEastY'] and\
@@ -188,9 +194,11 @@ class CSGO_Env_Utils:
         
         #initialise bomb plant
         with mouse_controller.pressed(Button.left):
-            round_status = server.get_info('round')
+            # round_status = server.get_info('round')
+            round_status = get_info('round')
             while 'bomb' not in round_status.keys():
-                round_status = server.get_info('round')
+                # round_status = server.get_info('round')
+                round_status = get_info('round')
                 if 'bomb' in round_status.keys():
                     if round_status['bomb'] == 'planted':
                         break
@@ -221,7 +229,7 @@ class CSGO_Env_Utils:
         keyboard_controller.release('~')
         print('command sent')
         
-    def navigate(path, keyboard_controller, mouse_controller, server, player = "player"):
+    def navigate(path, keyboard_controller, mouse_controller, player = "player"):
         not_reached = True
         path.append(None)
         next_node = path.pop(0)
@@ -230,31 +238,43 @@ class CSGO_Env_Utils:
                 not_reached = False
             
             #rmb to enclose in try block
-            player_info = server.get_info("player")
+            # player_info = server.get_info("player")
+            player_info = get_info("player")
             print('player info : ', player_info)
-            curr_loc = np.fromstring(player_info['location'], dtype = np.int32, sep = ',')
-            forward = np.fromstring(player_info['forward'], dtype = np.float32, sep = ',') 
-            
+            # curr_loc = np.fromstring(player_info['position'], dtype = np.int32, sep = ',')
+            curr_loc = np.array(player_info['position'].split(','), dtype = np.float32)
+            print('current location : ', curr_loc)
+            # forward = np.fromstring(player_info['forward'], dtype = np.float32, sep = ',') 
+            forward = np.array(player_info['forward'].split(','), dtype = np.float32)
+            print('next node : ', next_node)
             #find difference between current location and next node
-            diff = next_node - curr_loc
-            
+            diff = next_node.flatten() - curr_loc[:2].flatten()
+            print('difference : ', diff)
             #normalize values 
             norm_diff = diff / np.linalg.norm(diff)
+            print(norm_diff)
             
             #find orientation of next node 
-            while(np.dot(forward, norm_diff) < 0.99):
+            while(np.dot(forward[:2], norm_diff.flatten()) < 0.90):
                 mouse_pos = mouse_controller.position
-                mouse_pos = (mouse_pos[0], mouse_pos[1] + 1)
-                mouse.position = mouse_pos
-                player_info = server.get_info('player')
-                forward = np.fromstring(player_info['forward'], dtype = np.float32, sep = ',') 
+                
+                # mouse_pos = (mouse_pos[0], mouse_pos[1] + 1)
+                mouse_controller.move(1,0)
+                # mouse.position = mouse_pos
+                # player_info = server.get_info('player')
+                player_info = get_info('player')
+                # forward = np.fromstring(player_info['forward'], dtype = np.float32, sep = ',')
+                forward = np.array(player_info['forward'].split(','), dtype = np.float32)
+
                 
                 
             #hard forward walk to next node
             keyboard_controller.press('w')
-            while(np.dot(curr_loc, next_node) < 0.99):
-                player_info = server.get_info('player')
-                curr_loc = np.fromstring(player_info['location'], dtype = np.int32, sep = ',')
+            while(np.dot(curr_loc[:2], next_node) < 0.90):
+                # player_info = server.get_info('player')
+                player_info = get_info('player')
+                # curr_loc = np.fromstring(player_info['position'], dtype = np.int32, sep = ',')
+                curr_loc = np.array(player_info['position'].split(','), dtype = np.float32)
             
             keyboard_controller.release('w')
             
@@ -294,7 +314,7 @@ class CSGO_Env(gym.Env):
         # self._prev_action = None
         self.observation_space = CSGO_Env_Utils.observation_space_domain(self.max_x, self.min_x, self.max_y, self.min_y, self.max_z, self.min_z, self.SCREEN_HEIGHT, self.SCREEN_WIDTH)
         self.action_space = CSGO_Env_Utils.action_space_domain(self.SCREEN_HEIGHT, self.SCREEN_WIDTH)
-        CSGO_Env_Utils.start_game(self.MAP_NAME, self.MAP_DATA, self.nav_mesh, self.keyboard_controller, self.mouse_controller, self.server)
+        CSGO_Env_Utils.start_game(self.MAP_NAME, self.MAP_DATA, self.nav_mesh, self.keyboard_controller, self.mouse_controller)
         
     def _init_para(self):
         self.min_x, self.max_x = None, None
@@ -545,9 +565,12 @@ class CSGO_Env(gym.Env):
     #TODO: Change datatype
     #DONE, TODO: Check
     def _make_observation_complete(self):
-        agent = GSI_SERVER_TRAINING.get_info("player")
-        phase_cd = GSI_SERVER_TRAINING.get_info("phase_countdowns")
-        round_info = GSI_SERVER_TRAINING.get_info("round")
+        # agent = GSI_SERVER_TRAINING.get_info("player")
+        # phase_cd = GSI_SERVER_TRAINING.get_info("phase_countdowns")
+        # round_info = GSI_SERVER_TRAINING.get_info("round")
+        agent = get_info("player")
+        phase_cd = get_info("phase_countdowns")
+        round_info = get_info("round")
         match_result = round_info['win_team'] 
         if match_result == 'T':
             match_result = 1
@@ -556,12 +579,15 @@ class CSGO_Env(gym.Env):
         else:
             match_result = 0
         enemy = {}
-        players = GSI_SERVER_TRAINING.get_info("allplayers")#returns dictionary of bombstate
+        # players = GSI_SERVER_TRAINING.get_info("allplayers")#returns dictionary of bombstate
+        players = get_info("allplayers")#returns dictionary of bombstate
+
         for player in players:
             if player['name'] != agent['name']:
                 enemy = player
                 break
-        bomb = GSI_SERVER_TRAINING.get_info("bomb")
+        # bomb = GSI_SERVER_TRAINING.get_info("bomb")
+        bomb = get_info("bomb")
         agent_weapon = [weapon for weapon in agent['weapons'] if weapon['state'] == 'active'][0]
         
         return{
@@ -569,8 +595,9 @@ class CSGO_Env(gym.Env):
             'enemy' : {
                 'position' :{
                     'areaId' : None,
-                    'location' : np.fromstring(enemy['position']),
-                    'forward' : np.fromstring(enemy['forward']),
+                    # 'location' : np.fromstring(enemy['position']),
+                    'location' : np.array(enemy['position'].split(','), dtype=np.float32),
+                    'forward' : np.array(enemy['forward'].split(','), dtype=np.float32),
                     'time_seen' : float(phase_cd['phase_ends_in']),
                 },
                 'health' : int(enemy['state']['health']),
@@ -578,14 +605,15 @@ class CSGO_Env(gym.Env):
             'agent' : {
                 'position' : {
                     'areaId' : None,
-                    'location' : np.fromstring(agent['position']),
-                    'forward' : np.fromstring(agent['forward']),
+                    'location' : np.array(agent['position'].split(','), dtype=np.float32),
+                    'forward' : np.array(agent['forward'].split(','), dtype=np.float32),
                 },
                 'agent_gun' : agent_weapon['name'],
                 'agent_bullets' : int(agent_weapon['ammo_clip']),
                 'health' : int(agent['state']['health']),
                 },
-            'bomb location' : np.fromstring(bomb['position']),
+            # 'bomb location' : np.fromstring(bomb['position']),
+            'bomb location' : np.array(bomb['position'].split(','), dtype=np.float32),
             'bomb defusing' : 1 if bomb['state'] == 'defusing' else 0,
             'current_time' : int(phase_cd['phase_ends_in']),
             'winner' : match_result
@@ -617,7 +645,7 @@ if __name__ == '__main__':
     navmesh = pf.PathFinder(vertices, polygons)
     keyboard_controller = keyboard.Controller()
     mouse_controller = mouse.Controller()
-    CSGO_Env_Utils.start_game( MAP_NAME, MAP_DATA, navmesh, keyboard_controller, mouse_controller, GSI_SERVER_TRAINING)
+    CSGO_Env_Utils.start_game( MAP_NAME, MAP_DATA, navmesh, keyboard_controller, mouse_controller)
 ######BETA CODE########
 """
 class Partial_State():
