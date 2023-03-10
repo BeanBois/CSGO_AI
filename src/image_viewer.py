@@ -3,7 +3,8 @@ import numpy as np
 import cv2
 
 FILE_DIR = './GameInterface/csgo_bomb_images/'
-FILE_DIR_PROC = './processed_images/positive_images/'
+# FILE_DIR_PROC = './processed_images/positive_images/'
+FILE_DIR_PROC = './GameInterface/csgo_bomb_images'
 from input_data_utils import CSGOImageProcessor
 
 

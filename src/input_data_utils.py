@@ -216,10 +216,7 @@ class CSGOImageProcessor:
                     x_center, y_center, width, height = float(x_center), float(y_center), float(width), float(height)
                     area = width * height
                     return { 'bb' : yolobbox2bbox(x_center, y_center, width, height), 'area': area}
-                    # color = (0, 255, 0)  # Show targets with green boxes
-                    # cv2.rectangle(center_image, top_left, bottom_right, color, thickness=3)
 
-        # return center_image
     
     def scan_center_image_for_enemy(self, center_image):
         # scan the center image for an enemy

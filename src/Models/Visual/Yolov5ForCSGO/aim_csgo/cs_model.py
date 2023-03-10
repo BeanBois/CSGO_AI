@@ -6,7 +6,6 @@
 
 import torch
 from ..models.experimental import attempt_load
-
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 half = device != 'cpu'
 

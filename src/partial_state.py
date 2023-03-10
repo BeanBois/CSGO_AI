@@ -1,6 +1,6 @@
 import gym
 from gym import spaces
-from gym.spaces import Dict, Sequence, Tuple, Discrete, Box
+from gym.spaces import Dict, Tuple, Discrete, Box
 from awpy.data import NAV_CSV
 import numpy as np
 import random
@@ -8,13 +8,16 @@ import threading as th
 #import servers, they have started already btw
 from csgo_gsi_python import TRAINING
 import time
+from enemy_detection_server_client import ENEMY_SCREEN_DETECTOR, grab_screen
+
 # if TRAINING:
 #     from csgo_gsi_python import GSI_SERVER_TRAINING
-from gsi_server import get_info
+from gsi_server import client.get_info as get_info
+
 #importing input library
-# from pynput import mouse, keyboard
-# from pynput.mouse import Button
-# from pynput.keyboard import Key
+from pynput import mouse, keyboard
+from pynput.mouse import Button
+from pynput.keyboard import Key
 
 #path finding algorithm
 import pathfinder as pf
@@ -23,7 +26,6 @@ import pathfinder as pf
 TIME_STEPS = 40
 
 class CSGO_Env_Utils:
-    
     
     def location_domain(max_x, min_x, max_y, min_y, max_z, min_z):
         return Box(
@@ -45,14 +47,13 @@ class CSGO_Env_Utils:
             dtype = np.float32
         )
     
-    def action_space_domain(SCREEN_HEIGHT,SCREEN_WIDTH):
+    def action_space_domain():
         return Tuple(
             Discrete(2), #shift pressed? #shift pressed == walking, else running
             Discrete(2), #ctrl pressed? #crouching basically, ctrl pressed == crouching, else standing
             Discrete(2), #space pressed? #jumping basically, space pressed == jumping, else standing
             Discrete(2), #fire? #fire == 1, else 0 #left mouse click
             Discrete(5), #0 for no button pressed, 1 for 'w', 2 for 'a', 3 for 's', 4 for 'd', 
-            Box(low = np.array[0,0], high = np.array[SCREEN_HEIGHT,SCREEN_WIDTH], dtype = np.float32) #location of cursor
         )
     
     def observation_space_domain(max_x, min_x, max_y, min_y, max_z, min_z, SCREEN_HEIGHT, SCREEN_WIDTH):
@@ -254,11 +255,11 @@ class CSGO_Env_Utils:
             print(norm_diff)
             
             #find orientation of next node 
-            while(np.dot(forward[:2], norm_diff.flatten()) < 0.90):
+            while(np.dot(forward[:2], norm_diff.flatten()) < 0.80):
                 mouse_pos = mouse_controller.position
                 
                 # mouse_pos = (mouse_pos[0], mouse_pos[1] + 1)
-                mouse_controller.move(1,0)
+                mouse_controller.move(5,0)
                 # mouse.position = mouse_pos
                 # player_info = server.get_info('player')
                 player_info = get_info('player')
@@ -298,8 +299,8 @@ class CSGO_Env_Utils:
 class CSGO_Env(gym.Env):
     MAP_NAME = 'de_dust2'
     MAP_DATA = NAV_CSV[NAV_CSV["mapName"] == MAP_NAME]
-    SCREEN_HEIGHT = 768
-    SCREEN_WIDTH = 1024
+    SCREEN_HEIGHT = ENEMY_SCREEN_DETECTOR.re_x
+    SCREEN_WIDTH = ENEMY_SCREEN_DETECTOR.re_y
     OBSERVING_TIME = 0.1
     ACTION_TIME = 0.1
     #Env is made up of segmented areas of map. Each area is represented by a super node
@@ -312,7 +313,7 @@ class CSGO_Env(gym.Env):
         self._reward = 0
         # self._prev_action = None
         self.observation_space = CSGO_Env_Utils.observation_space_domain(self.max_x, self.min_x, self.max_y, self.min_y, self.max_z, self.min_z, self.SCREEN_HEIGHT, self.SCREEN_WIDTH)
-        self.action_space = CSGO_Env_Utils.action_space_domain(self.SCREEN_HEIGHT, self.SCREEN_WIDTH)
+        self.action_space = CSGO_Env_Utils.action_space_domain()
         CSGO_Env_Utils.start_game(self.MAP_NAME, self.MAP_DATA, self.nav_mesh, self.keyboard_controller, self.mouse_controller)
         
     def _init_para(self):
@@ -324,15 +325,24 @@ class CSGO_Env(gym.Env):
         self.mouse_controller = mouse.Controller()
         self.keyboard_controller = keyboard.Controller()
         index=0
-        for data in CSGO_Env.MAP_DATA:
-            x_range = np.arange(float(data["northWestX"]), float(data["southEastX"]), 1)
-            y_range = np.arange(float(data["northWestY"]), float(data["southEastY"]), 1)
-            z_range = np.arange(float(data["northWestZ"]), float(data["southEastZ"]), 1)
-            v = CSGO_Env_Utils.cartesian_product(x_range, y_range, z_range)
-            for point in v:
-                vertices.append(point)
-            polygons.append(tuple(range(index, index+len(vertices))))
-            index += len(vertices)
+        for i in range(len(CSGO_Env.MAP_DATA)):
+            data = CSGO_Env.MAP_DATA.iloc[i]
+            # x_range = np.array([float(data["northWestX"]), float(data["southEastX"])])
+            # y_range = np.array([float(data["northWestY"]), float(data["southEastY"])])
+            # z_range = None
+            # #account for similarity in z_range
+            # if abs(data["northWestZ"] - data["southEastZ"]) <= 0.00001:
+            #     z_range = np.array([float(data["northWestZ"])])
+            # else:
+            #     z_range = np.array([float(data["northWestZ"]), float(data["southEastZ"])])
+            # v = CSGO_Env_Utils.cartesian_product(x_range, y_range, z_range)
+            # points_added = 0
+            # for point in v:
+            #     vertices.append(tuple(point))
+            #     points_added+=1
+                
+            # polygons.append([i for i in range(index,index+points_added)])
+            # index += points_added
             if self.min_x is None or self.min_x > float(data["northWestX"]):
                 self.min_x = float(data["northWestX"])
                 
@@ -350,7 +360,7 @@ class CSGO_Env(gym.Env):
                 
             if self.max_z is None or self.max_z < float(data["southEastZ"]):
                 self.max_z = float(data["southEastZ"])
-        self.navmesh = pf.PathFinder(vertices, polygons)
+        self.navmesh = pf.read_from_text('navmesh_dust2.txt')
         #then initialise the game
           
     #(observation, reward, done, info)
@@ -395,7 +405,7 @@ class CSGO_Env(gym.Env):
     def _get_full_state(self,lock):
         #here we assume TRAINING is true
         with lock:
-            self._obs = self._make_observation_complete()
+            self._obs = self._make_complete_observation()
         
     def _get_reward(self, prev_obs ,lock, action):
         with lock:
@@ -492,7 +502,14 @@ class CSGO_Env(gym.Env):
         spacebar_pressed = True if action[2] == 1 else False
         movement_button = None
         left_click = True if action[4] == 1 else False
-        cursor_location = action[5]
+        
+        enemy_screen_coords = ENEMY_SCREEN_DETECTOR.enemy_screen_coords
+        cursor_location = None
+        if enemy_screen_coords['body'] is not None:
+            cursor_location = enemy_screen_coords['body']
+        elif enemy_screen_coords['head'] is not None:
+            cursor_location = enemy_screen_coords['head']  
+        
         if action[3] == 1:
             movement_button = Key.w
         elif action[3] == 2:
@@ -554,16 +571,17 @@ class CSGO_Env(gym.Env):
                 self.keyboard_controller.release(Key.space)
          
         if left_click:
-            self.mouse_controller.position = cursor_location
+            if cursor_location is not None:
+                curr_cursor_position = self.mouse_controller.position 
+                self.mouse_controller.move(cursor_location[0] - curr_cursor_position[0], cursor_location[1] - curr_cursor_position[1])
             self.mouse_controller.click(Button.left)
-        else:
-            self.mouse_controller.position = cursor_location
+            self.mouse_controller.release(Button.left)
+            
         #sleep to run through the timed thread
         time.sleep(self.ACTION_TIME)   
-        
     #TODO: Change datatype
     #DONE, TODO: Check
-    def _make_observation_complete(self):
+    def _make_complete_observation(self):
         # agent = GSI_SERVER_TRAINING.get_info("player")
         # phase_cd = GSI_SERVER_TRAINING.get_info("phase_countdowns")
         # round_info = GSI_SERVER_TRAINING.get_info("round")
@@ -588,7 +606,8 @@ class CSGO_Env(gym.Env):
         # bomb = GSI_SERVER_TRAINING.get_info("bomb")
         bomb = get_info("bomb")
         agent_weapon = [weapon for weapon in agent['weapons'] if weapon['state'] == 'active'][0]
-        
+        img = grab_screen(region=(0,0,ENEMY_SCREEN_DETECTOR.x,ENEMY_SCREEN_DETECTOR.y))
+        enemy_screen_coord = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
         return{
             'obs_type' : 1,
             'enemy' : {
