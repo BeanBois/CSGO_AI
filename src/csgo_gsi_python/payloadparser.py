@@ -8,7 +8,7 @@ class PayloadParser:
         for item in payload:
             if item == 'allplayers':
                 for i in payload[item]:
-                    getattr(gamestate,item)[i] = Player()
+                    getattr(gamestate,item)[i] = information.Player()
                     for j in payload[item][i]:
                         try:
                             setattr(

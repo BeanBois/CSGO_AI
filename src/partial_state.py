@@ -599,6 +599,7 @@ class CSGO_Env(gym.Env):
                     'forward' : np.array(enemy['forward'].split(','), dtype=np.float32),
                     'time_seen' : float(phase_cd['phase_ends_in']),
                 },
+                'enemy_coord_on_screen' : (None, None),
                 'health' : int(enemy['state']['health']),
                 },
             'agent' : {

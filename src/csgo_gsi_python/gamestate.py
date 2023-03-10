@@ -3,12 +3,12 @@
 from . import information
 class GameState:
     def __init__(self):
-        self.player = Player()
-        self.map = Map()
-        self.provider = Provider()
-        self.phase_countdowns = PhaseCountdowns()
-        self.bomb = Bomb()
-        self.round = Round()
+        self.player = information.Player()
+        self.map = information.Map()
+        self.provider = information.Provider()
+        self.phase_countdowns = information.PhaseCountdowns()
+        self.bomb = information.Bomb()
+        self.round = information.Round()
 
 
 class CompleteGameState(GameState):
