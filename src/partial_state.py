@@ -283,7 +283,6 @@ class CSGO_Env_Utils:
             if np.all(curr_loc == next_node):
                 next_node = path.pop(0)
     
-
     def reset_game():
         pass
     
@@ -582,9 +581,6 @@ class CSGO_Env(gym.Env):
     #TODO: Change datatype
     #DONE, TODO: Check
     def _make_complete_observation(self):
-        # agent = GSI_SERVER_TRAINING.get_info("player")
-        # phase_cd = GSI_SERVER_TRAINING.get_info("phase_countdowns")
-        # round_info = GSI_SERVER_TRAINING.get_info("round")
         agent = get_info("player")
         phase_cd = get_info("phase_countdowns")
         round_info = get_info("round")
@@ -639,6 +635,54 @@ class CSGO_Env(gym.Env):
             
         }
     
+    def _make_partial_state(self):
+        #direct access to player information and time only
+        agent = get_info("player")
+        phase_cd = get_info("phase_countdowns")
+        round_info = get_info("round")
+        match_result = round_info['win_team'] 
+        if match_result == 'T':
+            match_result = 1
+        elif match_result == 'CT':
+            match_result = 2
+        else:
+            match_result = 0
+
+        # bomb = GSI_SERVER_TRAINING.get_info("bomb")
+        bomb = get_info("bomb")
+        agent_weapon = [weapon for weapon in agent['weapons'] if weapon['state'] == 'active'][0]
+        img = grab_screen(region=(0,0,ENEMY_SCREEN_DETECTOR.x,ENEMY_SCREEN_DETECTOR.y))
+        enemy_screen_coord = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
+        return{
+            'obs_type' : 1,
+            'enemy' : {
+                'position' :{
+                    'areaId' : None,
+                    # 'location' : np.fromstring(enemy['position']),
+                    'location' : np.array(enemy['position'].split(','), dtype=np.float32),
+                    'forward' : np.array(enemy['forward'].split(','), dtype=np.float32),
+                    'time_seen' : float(phase_cd['phase_ends_in']),
+                },
+                'enemy_coord_on_screen' : (None, None),
+                'health' : int(enemy['state']['health']),
+                },
+            'agent' : {
+                'position' : {
+                    'areaId' : None,
+                    'location' : np.array(agent['position'].split(','), dtype=np.float32),
+                    'forward' : np.array(agent['forward'].split(','), dtype=np.float32),
+                },
+                'agent_gun' : agent_weapon['name'],
+                'agent_bullets' : int(agent_weapon['ammo_clip']),
+                'health' : int(agent['state']['health']),
+                },
+            # 'bomb location' : np.fromstring(bomb['position']),
+            'bomb location' : np.array(bomb['position'].split(','), dtype=np.float32),
+            'bomb defusing' : 1 if bomb['state'] == 'defusing' else 0,
+            'current_time' : int(phase_cd['phase_ends_in']),
+            'winner' : match_result
+            
+        }
     def reset(self):
         CSGO_Env_Utils.reset_game()
         CSGO_Env_Utils.start_game()     
