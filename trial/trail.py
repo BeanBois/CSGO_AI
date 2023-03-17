@@ -17,46 +17,45 @@ def cartesian_product(*arrays):
 
 MAP_NAME = 'de_dust2'
 MAP_DATA = NAV_CSV[NAV_CSV["mapName"] == MAP_NAME]
-vertices = []
-polygons = []
-index=0
-for i in range(len(MAP_DATA)):
-    data = MAP_DATA.iloc[i]
-    x_range = np.array([float(data["northWestX"]), float(data["southEastX"])])
-    y_range = np.array([float(data["northWestY"]), float(data["southEastY"])])
-    z_range = None
-    #account for similarity in z_range
-    if abs(data["northWestZ"] - data["southEastZ"]) <= 0.00001:
-        z_range = np.array([float(data["northWestZ"]), float(data["northWestZ"]+0.00001)])
-    else:
-        z_range = np.array([float(data["northWestZ"]), float(data["southEastZ"])])
-    v = cartesian_product(x_range, y_range, z_range)
-    num_points = 0
-    points_added = 0
-    for point in v:
-        vertices.append(tuple(point))
-        points_added+=1
+# vertices = []
+# polygons = []
+# index=0
+# for i in range(len(MAP_DATA)):
+#     data = MAP_DATA.iloc[i]
+#     x_range = np.array([float(data["northWestX"]), float(data["southEastX"])])
+#     y_range = np.array([float(data["northWestY"]), float(data["southEastY"])])
+#     z_range = None
+#     #account for similarity in z_range
+#     if abs(data["northWestZ"] - data["southEastZ"]) <= 0.00001:
+#         z_range = np.array([float(data["northWestZ"])])
+#     else:
+#         z_range = np.array([float(data["northWestZ"]), float(data["southEastZ"])])
+#     v = cartesian_product(x_range, y_range, z_range)
+#     num_points = 0
+#     points_added = 0
+#     for point in v:
+#         vertices.append(tuple(point))
+#         points_added+=1
         
-    polygons.append([i for i in range(index,index+points_added)])
-    index += points_added
-# print(vertices)
-# print(polygons)
-# # create baker object
-baker = nmb.NavmeshBaker()
+#     polygons.append([i for i in range(index,index+points_added)])
+#     index += points_added
+# # print(vertices)
+# # print(polygons)
+# # # create baker object
+# baker = nmb.NavmeshBaker()
 
-# # add geometry, for example a simple plane
-# # the first array contains vertex positions, the second array contains polygons of the geometry
-baker.add_geometry(vertices, polygons)
+# # # add geometry, for example a simple plane
+# # # the first array contains vertex positions, the second array contains polygons of the geometry
+# baker.add_geometry(vertices, polygons)
 
-# # bake navigation mesh
-baker.bake()
-baker.save_to_text("navmesh_dust2.txt")
-baker.save_to_binary("navmesh_dust2")
-# # obtain polygonal description of the mesh
-vertices, polygons = baker.get_polygonization()
-navmesh = pf.PathFinder(vertices, polygons)
-vertices,polygons = pf.read_from_text("navmesh_dust2.txt")
-
+# # # bake navigation mesh
+# baker.bake()
+# baker.save_to_text("navmesh_dust2.txt")
+# baker.save_to_binary("navmesh_dust2")
+# # # obtain polygonal description of the mesh
+# vertices, polygons = baker.get_polygonization()
+# navmesh = pf.PathFinder(vertices, polygons)
+navmesh = pf.PathFinder.load_from_binary("navmesh_dust2")
 
 bombsite_choice = random.choice(['BombsiteA', 'BombsiteB'])
 spawn = MAP_DATA[MAP_DATA['areaName'] == 'TSpawn'].sample()

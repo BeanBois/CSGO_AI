@@ -5,10 +5,20 @@
 #as it can process stuff faster.
 #code taken from repo: 
 import numpy as np
-from Models.Visual.Yolov5ForCSGO.aim_csgo.cs_model import load_model
-from Models.Visual.Yolov5ForCSGO.utils.general import non_max_suppression, scale_coords, xyxy2xywh
-from Models.Visual.Yolov5ForCSGO.utils.augmentations import letterbox
-from Models.Visual.Yolov5ForCSGO.grabscreen import grab_screen
+# from Models.Visual.Yolov5ForCSGO.aim_csgo.cs_model import cs_model.load_model
+# from Models.Visual.Yolov5ForCSGO.utils.general import general.non_max_suppression, general.scale_coords, general.xyxy2xywh
+# from Models.Visual.Yolov5ForCSGO.utils.augmentations import augmentations.letterbox
+# from Models.Visual.Yolov5ForCSGO.grabscreen import grabscreen.grab_screen
+import Models.Visual.Yolov5ForCSGO.aim_csgo.cs_model as cs_model
+import Models.Visual.Yolov5ForCSGO.utils.general as general
+import Models.Visual.Yolov5ForCSGO.utils.augmentations as augmentations
+import Models.Visual.Yolov5ForCSGO.aim_csgo.grabscreen as grabscreen
+
+
+ 
+ 
+
+
 import torch
 import cv2
 
@@ -61,7 +71,7 @@ class EnemyScreenDetector:
         
         # Select GPU or CPU
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.half = device != 'cpu'
+        self.half = self.device != 'cpu'
         self.imgsz = 640
         self.conf_thres = 0.8  # Confidence
         self.iou_thres = 0.05  # NMS IoU threshold   
@@ -70,7 +80,7 @@ class EnemyScreenDetector:
         self.x, self.y = (1920, 1080)
         self.re_x, self.re_y = (1920, 1080)
         
-        self.model = load_model()
+        self.model = cs_model.load_model()
         self.stride = int(self.model.stride.max())
         self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
         self.held_image = None
@@ -93,21 +103,21 @@ class EnemyScreenDetector:
         image_processed = self._process_image(image)
         self.held_image = image #update the held image since this is a new scan
         pred = self.model(image, augment=False, visualize=False)[0]
-        pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, agnostic=False)
+        pred = general.non_max_suppression(pred, self.conf_thres, self.iou_thres, agnostic=False)
         aims = []
         for i, det in enumerate(pred):
             s = ''
             s += '%gx%g' % image_processed.shape[2:]
             gn = torch.tensor(image.shape)[[1, 0, 1, 0]]
             if len(det):
-                det[:, :4] = scale_coords(image_processed.shape[2:], det[:, :4], image.shape).round()
+                det[:, :4] = general.scale_coords(image_processed.shape[2:], det[:, :4], image.shape).round()
 
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)},"
 
                 for *xyxy, conf, cls in reversed(det):
-                    xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
+                    xywh = (general.xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
                     line = (cls, *xywh)
                     aim = ('%g ' * len(line)).rstrip() % line  # str
                     aim = aim.split(' ')  # list
@@ -146,7 +156,7 @@ class EnemyScreenDetector:
     def _process_image(self,img0):
         img0 = cv2.resize(img0, (self.re_x, self.re_y))
 
-        img = letterbox(img0, self.imgsz, stride=self.stride)[0]
+        img = augmentations.letterbox(img0, self.imgsz, stride=self.stride)[0]
 
         img = img.transpose((2, 0, 1))[::-1]
         img = np.ascontiguousarray(img)
