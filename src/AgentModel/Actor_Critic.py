@@ -4,6 +4,7 @@ import torch.optim as optim
 import numpy as np
 from collections import deque
 import random
+
 class ReplayBuffer:
     def __init__(self, max_size):
         self.buffer = []

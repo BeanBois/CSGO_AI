@@ -173,59 +173,66 @@ ENEMY_SCREEN_DETECTOR = EnemyScreenDetector()
 ENEMY_RADAR_DETECTOR = EnemyRadarDetector()   
 
 
-# #server client code from : https://stackoverflow.com/questions/11352855/communication-between-two-computers-using-python-socket
-# import socket
-# import re
-# from dict_to_unicode import asciify
-# import json
-# import pandas as pd
-# from Models.Visual.Yolov5ForCSGO import Yolov5ForCSGO
-# class server:
-#     def start_object_detection_model():
-#         host = '127.0.0.1' #server ip
-#         port = 4000
+#server client code from : https://stackoverflow.com/questions/11352855/communication-between-two-computers-using-python-socket
+import socket
+import re
+import json
+import pandas as pd
+from Models.Visual.Yolov5ForCSGO import Yolov5ForCSGO
 
-#         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#         s.bind((host, port))
 
-#         print("Server Started")
-#         while True:
-#             #receive key
-#             data, addr = s.recvfrom(1024)
+#This code will be ran by computer thats learning the game model. <The Reinfocement Learning Agent>
+#This pc can be in any OS, But i will be using MACXOS
+class server:
+    def start_object_detection_model():
+        host = '127.0.0.1' #server ip
+        port = 4000
+
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.bind((host, port))
+
+        print("Server Started")
+        while True:
+            #receive the coordinates of the enemy on screen, and if enemy is present
+            data_client, addr = s.recvfrom(1024)
             
-#             if data is not None:
-#                 data = data.decode('utf-8')
-#                 print("Message from: " + str(addr))
-#                 # print("From connected user: " + data)
-#                 data = GSI_SERVER_TRAINING.get_info(data)
-#                 data = re.sub(r"\'", "\"", str(data))
-#                 data = re.sub(r"True", "\"1T\"", data)
-#                 data = re.sub(r"False", "\"0F\"", data)
-#                 data = re.sub(r"None", "\"null\"", data)
-#                 # print("Sending: " + data)
-#                 s.sendto(data.encode('utf-8'), addr)
-#         # s.close()
+            #then process the data from client, specifically
+            #see if the enemy is present, and if so, get the coordinates of the enemy
+            
+            
+            if data is not None:
+                data = data.decode('utf-8')
+                print("Message from: " + str(addr))
+                # print("From connected user: " + data)
+                data = GSI_SERVER_TRAINING.get_info(data)
+                data = re.sub(r"\'", "\"", str(data))
+                data = re.sub(r"True", "\"1T\"", data)
+                data = re.sub(r"False", "\"0F\"", data)
+                data = re.sub(r"None", "\"null\"", data)
+                # print("Sending: " + data)
+                s.sendto(data.encode('utf-8'), addr)
+        # s.close()
 
 
 
-# class client:
-#     def get_info(key):
-#         host='192.168.1.241' #client ip
-#         port = 4005
+class client:
+    def get_info(key):
+        host='192.168.1.241' #client ip
+        port = 4005
 
-#         server = ('192.168.1.109', 4000)
+        server = ('192.168.1.109', 4000)
         
-#         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#         s.bind((host,port))
-#         s.sendto(key.encode('utf-8'), server)
-#         data, addr = s.recvfrom(1024*4)
-#         data = data.decode('utf-8')
-#         # print("Received from server: " + data)
-#         data = json.loads(data)
-#         # print("Received from server: " + str(data))
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.bind((host,port))
+        s.sendto(key.encode('utf-8'), server)
+        data, addr = s.recvfrom(1024*4)
+        data = data.decode('utf-8')
+        # print("Received from server: " + data)
+        data = json.loads(data)
+        # print("Received from server: " + str(data))
         
-#         s.close()
-#         # if key == 'position' or key == 'forward':
-#         #     coords = data.split(',')
-#         #     return coords
-#         return data
+        s.close()
+        # if key == 'position' or key == 'forward':
+        #     coords = data.split(',')
+        #     return coords
+        return data

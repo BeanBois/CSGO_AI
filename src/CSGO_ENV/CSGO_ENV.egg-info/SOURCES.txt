@@ -1,0 +1,7 @@
+csgo_env.py
+setup.py
+CSGO_ENV.egg-info/PKG-INFO
+CSGO_ENV.egg-info/SOURCES.txt
+CSGO_ENV.egg-info/dependency_links.txt
+CSGO_ENV.egg-info/requires.txt
+CSGO_ENV.egg-info/top_level.txt

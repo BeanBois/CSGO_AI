@@ -5,7 +5,7 @@ import numpy as np
 import random
 import threading as th
 # import servers, they have started already btw
-from csgo_gsi_python import TRAINING
+# from csgo_gsi_python import TRAINING
 import time
 from enemy_detection_server_client import ENEMY_SCREEN_DETECTOR,ENEMY_RADAR_DETECTOR
 
@@ -19,7 +19,7 @@ from pynput import mouse, keyboard
 from pynput.mouse import Button
 from pynput.keyboard import Key
 
-
+TRAINING = True
 
 TIME_STEPS = 400
 
@@ -554,24 +554,24 @@ class CSGO_Env(gym.Env):
 
             # reward +0.5 if bomb is prevented from defusing
             if prev_bomb_defusing == 1 and bomb_defusing == 0 and info_timestamp > prev_info_timestamp:
-                reward += 0.5
+                reward += 0.25
             else:
                 pass
 
             # if bomb defusing, we penalize per timestep, unless enemy is being hit
             if bomb_defusing == 1:
                 if prev_enemy_health > cur_enemy_health:
-                    reward += 0.35
+                    reward += 0.1725
                 else:
-                    reward -= 0.025
+                    reward -= 0.0125
 
             # if bomb not defusing we take note focus on finding the enemy and hiding information
             else:
                 if prev_enemy_health > cur_enemy_health:
-                    reward += 0.25
+                    reward += 0.125
                 else:
                     if action[3] == 6:
-                        cost += 0.005  # cost for making noise and wasting gun ammo
+                        cost += 0.0025  # cost for making noise and wasting gun ammo
 
                 # now account for reward from partial state, specifically
                 # gaining new information about enemy location
@@ -588,7 +588,7 @@ class CSGO_Env(gym.Env):
                 if curr_enemy_location is not None and \
                         prev_enemy_location is None and \
                         curr_enemy_timestamp > prev_enemy_timestamp:  # need to replace here to accommodate for the fact that full state should not receive this reward
-                    reward += 0.1
+                    reward += 0.05
                 # enemy kept track of, reward += 0.001
                 elif curr_enemy_location is None and \
                         prev_enemy_location is not None:
@@ -599,11 +599,11 @@ class CSGO_Env(gym.Env):
                 # action[4] corr to movement key, action[2] corr to jump key
                 if (action[1] == 0 or action[0] == 0) and \
                         (action[4] != 0 or action[2] != 0):
-                    cost += 0.001
+                    cost += 0.0005
 
                 # +0.02 if near goal state and not defusing bomb
                 if self._near_goal_state() and bomb_defusing == 0:
-                    reward += 0.02
+                    reward += 0.001
 
             agent_health = self._obs['agent']['health']
             prev_agent_health = prev_obs['agent']['health']
@@ -612,9 +612,9 @@ class CSGO_Env(gym.Env):
                     pass
                 else:
                     if agent_health <= 50:
-                        reward -= 0.4
-                    else:
                         reward -= 0.2
+                    else:
+                        reward -= 0.1
         return reward - cost
 
     # way we apply action might result very straight forward
