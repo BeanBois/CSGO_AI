@@ -17,6 +17,11 @@ import cv2
 import win32gui
 import win32con
 
+import cv2
+import numpy as np
+from matplotlib import pyplot as plt
+import imutils
+
 
 
 
@@ -24,7 +29,28 @@ class EnemyRadarDetector:
     
     def __init__(self):
         pass
-    pass
+    def scan_for_enemy(self, image):
+
+        #color definition
+        red_lower = np.array([30,30,210])
+        red_upper = np.array([60,60,255])
+
+        mask = cv2.inRange(image, red_lower, red_upper)
+        connectivity = 4  
+        # Perform the operation
+        output = cv2.connectedComponentsWithStats(mask, connectivity, cv2.CV_32S)
+        # Get the results
+
+        num_labels = output[0]-1
+
+        centroids = output[3][1:]
+
+
+
+        #print results
+        print ('number of dots, should be 4:',num_labels)
+        print ('array of dot center coordinates:',centroids)
+        return num_labels > 0, centroids
 
 
 class EnemyScreenDetector:
@@ -134,7 +160,7 @@ class EnemyScreenDetector:
 
 
 ENEMY_SCREEN_DETECTOR = EnemyScreenDetector()
-        
+ENEMY_RADAR_DETECTOR = EnemyRadarDetector()   
 
 
 # #server client code from : https://stackoverflow.com/questions/11352855/communication-between-two-computers-using-python-socket
