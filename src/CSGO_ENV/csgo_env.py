@@ -310,21 +310,21 @@ class CSGO_Env_Utils:
     def generate_set_of_goals(site):
         #hand picked goals sadly
         B = {
-            (-2157.99, 1814.03, 68.03),
-            (-1639.76, 1620.03, 66.41),
-            (-1394.03, 1978.68, 70.08),
-            (-1819.93, 2477.03, 94.81),
-            (-2084.75, 3117.96, 99.53),
-            (-1362.03, 2755.43, 82.11),
-            (-1271,41, 2481.42, 108.06), 
+            Tuple([-2157.99, 1814.03, 68.03]),
+            Tuple([-1639.76, 1620.03, 66.41]),
+            Tuple([-1394.03, 1978.68, 70.08]),
+            Tuple([-1819.93, 2477.03, 94.81]),
+            Tuple([-2084.75, 3117.96, 99.53]),
+            Tuple([-1362.03, 2755.43, 82.11]),
+            Tuple([-1271,41, 2481.42, 108.06]), 
         }
         A = {
-            (384.29,1935.1,160.07),
-            (543.96, 2763.54, 161.43),
-            (1235.10,2460.96,161.89),
-            (1051.03, 3059.96, 195.22),
-            (1329.03, 2407.05, 102.65),
-            (1763.37, 1999.96, 65.14),#a bombsite
+            Tuple([384.29,1935.1,160.07]),
+            Tuple([543.96, 2763.54, 161.43]),
+            Tuple([1235.10,2460.96,161.89]),
+            Tuple([1051.03, 3059.96, 195.22]),
+            Tuple([1329.03, 2407.05, 102.65]),
+            Tuple([1763.37, 1999.96, 65.14]),#a bombsite
         }
         if site == 'BombsiteA':
             return A
@@ -374,14 +374,16 @@ class CSGO_Env(gym.Env):
         self._time_of_goal_state = None
         # self._prev_action = None
         self.observation_space = CSGO_Env_Utils.observation_space_domain(
-            self.max_x, self.min_x, self.max_y, self.min_y, self.max_z, self.min_z, self.SCREEN_HEIGHT, self.SCREEN_WIDTH)
-        self.action_space = CSGO_Env_Utils.action_space_domain()
+            self.max_x, self.min_x, self.max_y, self.min_y, self.max_z, self.min_z, self.SCREEN_HEIGHT, self.SCREEN_WIDTH).shape
+        self.action_space = CSGO_Env_Utils.action_space_domain().shape
+        self.goal_space = Tuple([1,1,1]).shape
+
+
         CSGO_Env_Utils.start_game(
             self.MAP_NAME, self.MAP_DATA, self.keyboard_controller, self.mouse_controller)
 
     def _init_para(self):
         bombsite_choice = random.choice(['BombsiteA', 'BombsiteB'])
-        
         self.min_x, self.max_x = None, None
         self.min_y, self.max_y = None, None
         self.min_z, self.max_z = None, None
@@ -460,7 +462,13 @@ class CSGO_Env(gym.Env):
         reward_thread.start()
         reward_thread.join()
 
-        return (self._obs, self._part_obs), self._reward, self._is_done(), {}
+        return self._obs, self._part_obs, self._reward, self._is_done(), self._goal_state, self._partial_goal_state
+
+    def get_current_observation(self):
+        return self._obs
+    
+    def get_current_partial_observation(self):
+        return self._part_obs
 
     # TODO: Fill in the blank <models> after finishing implementing them
     def _get_state(self, lock, information):
@@ -936,8 +944,10 @@ class CSGO_Env(gym.Env):
         }
 
     def reset(self):
+        bombsite_choice = random.choice(['BombsiteA', 'BombsiteB'])
         CSGO_Env_Utils.reset_game()
-        CSGO_Env_Utils.start_game()
+        CSGO_Env_Utils.start_game(CSGO_Env.MAP_NAME, CSGO_Env.MAP_DATA, self.keyboard_controller, self.mouse_controller,bombsite_choice)
+        return self.step(Tuple(0,0,0,0,0))
 
 # Goals implementation
 # Goals are basically a strategic location in the map

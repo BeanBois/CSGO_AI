@@ -45,47 +45,50 @@ class Critic(nn.Module):
 class Actor(nn.Module):
     def __init__(self, state_dim, action_dim, action_range, goal_dim):
         super(Actor, self).__init__()
-        self.conv1_state = nn.Conv2d(state_dim, 64, kernel_size=2)
-        self.conv2_state = nn.Conv2d(64, 64, kernel_size=2)
-        self.conv3_state = nn.Conv2d(64, 64, kernel_size=2)
-        self.conv4_state = nn.Conv2d(64, 64, kernel_size=2)
-        self.conv1_goal = nn.Conv2d(goal_dim, 64, kernel_size=2)
-        self.conv2_goal = nn.Conv2d(64, 64, kernel_size=2)
-        self.conv3_goal = nn.Conv2d(64, 64, kernel_size=2)
-        self.conv4_goal = nn.Conv2d(64, 64, kernel_size=2)
-        self.fc1 = nn.Linear(128, 512)
+        # self.conv1_state = nn.Conv2d(state_dim, 64, kernel_size=2)
+        # self.conv2_state = nn.Conv2d(64, 64, kernel_size=2)
+        # self.conv3_state = nn.Conv2d(64, 64, kernel_size=2)
+        # self.conv4_state = nn.Conv2d(64, 64, kernel_size=2)
+        # self.conv1_goal = nn.Conv2d(goal_dim, 64, kernel_size=2)
+        # self.conv2_goal = nn.Conv2d(64, 64, kernel_size=2)
+        # self.conv3_goal = nn.Conv2d(64, 64, kernel_size=2)
+        # self.conv4_goal = nn.Conv2d(64, 64, kernel_size=2)
+        self.fc1 = nn.Linear(state_dim + goal_dim, 512)
         self.fc2 = nn.Linear(512, 512)
-        self.fc3 = nn.Linear(512, action_dim)
+        self.fc3 = nn.Linear(512, 512)
+        self.fc4 = nn.Linear(512, action_dim) # action_dim = 7
         self.relu = nn.ReLU()
-        self.tanh = nn.Tanh()
-        self.action_range = action_range
+        # self.tanh = nn.Tanh()
+        self.sigmoid = nn.Sigmoid()
+        # self.action_range = action_range
 
     def forward(self, state, goal):
-        x1 = self.relu(self.conv1_state(state))
-        x1 = self.relu(self.conv2_state(x1))
-        x1 = self.relu(self.conv3_state(x1))
-        x1 = self.relu(self.conv4_state(x1))
-        x2 = self.relu(self.conv1_goal(goal))
-        x2 = self.relu(self.conv2_goal(x2))
-        x2 = self.relu(self.conv3_goal(x2))
-        x2 = self.relu(self.conv4_goal(x2))
-        x = torch.cat([x1, x2], dim=1)
+        # x1 = self.relu(self.conv1_state(state))
+        # x1 = self.relu(self.conv2_state(x1))
+        # x1 = self.relu(self.conv3_state(x1))
+        # x1 = self.relu(self.conv4_state(x1))
+        # x2 = self.relu(self.conv1_goal(goal))
+        # x2 = self.relu(self.conv2_goal(x2))
+        # x2 = self.relu(self.conv3_goal(x2))
+        # x2 = self.relu(self.conv4_goal(x2))
+        # x = torch.cat([x1, x2], dim=1)
         # x = torch.cat([x.view(x.size(0), -1), goal.view(goal.size(0), -1)], dim=1)
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
-        x = self.tanh(self.fc3(x)) * self.action_range
+        x = self.relu(self.fc3(x))
+        x = self.sigmoid(self.fc4(x))
         return x
 
 
 class DDPG:
-    def __init__(self, state_dim, action_dim, action_range, goal_dim, p_goal_dim, device):
+    def __init__(self, state_dim, action_dim, action_range, goal_dim, device):
 
         self.device = device
-        self.actor = Actor(state_dim, action_dim, action_range, p_goal_dim).to(device)
-        self.critic = Critic(state_dim, action_dim, goal_dim).to(device)
+        self.actor = Actor(state_dim, action_dim, action_range).to(device)
+        self.critic = Critic(state_dim + action_dim, action_dim).to(device)
 
-        self.target_actor = Actor(state_dim, action_dim, action_range, p_goal_dim).to(device)
-        self.target_critic = Critic(state_dim, action_dim, goal_dim).to(device)
+        self.target_actor = Actor(state_dim, action_dim, action_range).to(device)
+        self.target_critic = Critic(state_dim + action_dim, action_dim).to(device)
 
         self.target_actor.load_state_dict(self.actor.state_dict())
         self.target_critic.load_state_dict(self.critic.state_dict())
@@ -168,6 +171,7 @@ class DDPG:
         # Target update
         soft_update(self.actor_target, self.actor, self.tau)
         soft_update(self.critic_target, self.critic, self.tau)
+        return value_loss.data[0], policy_loss.data[0]
 
     def eval(self):
         self.actor.eval()
@@ -181,26 +185,38 @@ class DDPG:
         self.critic.cuda()
         self.critic_target.cuda()
 
-    def observe(self, r_t, s_t1, , p_st1, gs, go, done):
+    def observe(self, s_t, p_s_t, a_t, r_t, s_t1, , p_st1, gs, go, done):
         if self.is_training:
-            self.memory.push(self.s_t, self.p_s_t, self.a_t, r_t, s_t1, p_st1, gs, go ,done)
+            self.memory.push(s_t, p_s_t, a_t, r_t, s_t1, p_st1, gs, go ,done)
             self.s_t = s_t1
             self.p_s_t = p_st1
 
+    #redo this
+    #we just gonna generate a random number between 0 and 2**6
+    #and then we gonna convert it to a binary number
+    #and then we gonna convert it to a list of 0 and 1
     def random_action(self):
-        action = np.random.uniform(-1.,1.,self.nb_actions)
+        action = np.random.uniform(0, 1, size=action_dim)
+        action = (action > 0.5).int()
         self.a_t = action
-        return action
+        return self._process_action(action)
 
-    def select_action(self, s_t, g_o,decay_epsilon=True):
-        action = to_numpy(
-            self.actor(to_tensor(np.array([s_t])), to_tensor(np.array([g_o])))
-        ).squeeze(0)
-        action += self.is_training*max(self.epsilon, 0)*self.random_process.sample()
-        action = np.clip(action, -1., 1.)
-        
+    #redo this
+    #output of actor network is
+    def select_action(self, p_s_t, g_o, decay_epsilon=True):
+        # action = to_numpy(
+        #     self.actor(to_tensor(np.array([p_s_t])), to_tensor(np.array([g_o])))
+        # ).squeeze(0)
+        # action += self.is_training*max(self.epsilon, 0)*self.random_process.sample()
+        # action = np.clip(action,action_range[0],action_range[1])
+        action = self.actor(to_tensor(np.array([p_s_t])), to_tensor(np.array([g_o])))
+        action = (action > 0.5).int()
         self.a_t = action
-        return action
+        return self._process_action(action)
+
+    def _process_action(self,action):
+        return(action[0], action[1], action[2], action[3],action[4],
+            action[5], action[6])
 
     def reset(self, obs, p_obs, goal, p_goal):
         self.s_t = obs

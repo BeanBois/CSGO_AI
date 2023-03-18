@@ -19,10 +19,11 @@ def train(num_iterations, agent, env,  evaluate, validate_steps, output, max_epi
     step = episode = episode_steps = 0
     episode_reward = 0.
     observation = None
-    while episode < num_iterations:
+    while step < num_iterations:
         # reset if it is the start of episode
         if observation is None:
             observation = deepcopy(env.reset())
+            #here see what observation is
             agent.reset(observation)
 
         # agent pick action ...
@@ -87,42 +88,42 @@ def test(num_episodes, agent, env, evaluate, model_path, visualize=True, debug=F
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description='PyTorch on TORCS with Multi-modal')
+    # parser = argparse.ArgumentParser(description='PyTorch on TORCS with Multi-modal')
 
-    parser.add_argument('--mode', default='train', type=str, help='support option: train/test')
-    parser.add_argument('--env', default='Pendulum-v0', type=str, help='open-ai gym environment')
-    parser.add_argument('--hidden1', default=400, type=int, help='hidden num of first fully connect layer')
-    parser.add_argument('--hidden2', default=300, type=int, help='hidden num of second fully connect layer')
-    parser.add_argument('--rate', default=0.001, type=float, help='learning rate')
-    parser.add_argument('--prate', default=0.0001, type=float, help='policy net learning rate (only for DDPG)')
-    parser.add_argument('--warmup', default=100, type=int, help='time without training but only filling the replay memory')
-    parser.add_argument('--discount', default=0.99, type=float, help='')
-    parser.add_argument('--bsize', default=64, type=int, help='minibatch size')
-    parser.add_argument('--rmsize', default=6000000, type=int, help='memory size')
-    parser.add_argument('--window_length', default=1, type=int, help='')
-    parser.add_argument('--tau', default=0.001, type=float, help='moving average for target network')
-    parser.add_argument('--ou_theta', default=0.15, type=float, help='noise theta')
-    parser.add_argument('--ou_sigma', default=0.2, type=float, help='noise sigma') 
-    parser.add_argument('--ou_mu', default=0.0, type=float, help='noise mu') 
-    parser.add_argument('--validate_episodes', default=20, type=int, help='how many episode to perform during validate experiment')
-    parser.add_argument('--max_episode_length', default=500, type=int, help='')
-    parser.add_argument('--validate_steps', default=2000, type=int, help='how many steps to perform a validate experiment')
-    parser.add_argument('--output', default='output', type=str, help='')
-    parser.add_argument('--debug', dest='debug', action='store_true')
-    parser.add_argument('--init_w', default=0.003, type=float, help='') 
-    parser.add_argument('--train_iter', default=200000, type=int, help='train iters each timestep')
-    parser.add_argument('--epsilon', default=50000, type=int, help='linear decay of exploration policy')
-    parser.add_argument('--seed', default=-1, type=int, help='')
-    parser.add_argument('--resume', default='default', type=str, help='Resuming model path for testing')
-    parser.add_argument('--l2norm', default=0.01, type=float, help='l2 weight decay') # TODO
-    parser.add_argument('--cuda', dest='cuda', action='store_true') # TODO
+    # parser.add_argument('--mode', default='train', type=str, help='support option: train/test')
+    # parser.add_argument('--env', default='Pendulum-v0', type=str, help='open-ai gym environment')
+    # parser.add_argument('--hidden1', default=400, type=int, help='hidden num of first fully connect layer')
+    # parser.add_argument('--hidden2', default=300, type=int, help='hidden num of second fully connect layer')
+    # parser.add_argument('--rate', default=0.001, type=float, help='learning rate')
+    # parser.add_argument('--prate', default=0.0001, type=float, help='policy net learning rate (only for DDPG)')
+    # parser.add_argument('--warmup', default=100, type=int, help='time without training but only filling the replay memory')
+    # parser.add_argument('--discount', default=0.99, type=float, help='')
+    # parser.add_argument('--bsize', default=64, type=int, help='minibatch size')
+    # parser.add_argument('--rmsize', default=6000000, type=int, help='memory size')
+    # parser.add_argument('--window_length', default=1, type=int, help='')
+    # parser.add_argument('--tau', default=0.001, type=float, help='moving average for target network')
+    # parser.add_argument('--ou_theta', default=0.15, type=float, help='noise theta')
+    # parser.add_argument('--ou_sigma', default=0.2, type=float, help='noise sigma') 
+    # parser.add_argument('--ou_mu', default=0.0, type=float, help='noise mu') 
+    # parser.add_argument('--validate_episodes', default=20, type=int, help='how many episode to perform during validate experiment')
+    # parser.add_argument('--max_episode_length', default=500, type=int, help='')
+    # parser.add_argument('--validate_steps', default=2000, type=int, help='how many steps to perform a validate experiment')
+    # parser.add_argument('--output', default='output', type=str, help='')
+    # parser.add_argument('--debug', dest='debug', action='store_true')
+    # parser.add_argument('--init_w', default=0.003, type=float, help='') 
+    # parser.add_argument('--train_iter', default=200000, type=int, help='train iters each timestep')
+    # parser.add_argument('--epsilon', default=50000, type=int, help='linear decay of exploration policy')
+    # parser.add_argument('--seed', default=-1, type=int, help='')
+    # parser.add_argument('--resume', default='default', type=str, help='Resuming model path for testing')
+    # parser.add_argument('--l2norm', default=0.01, type=float, help='l2 weight decay') # TODO
+    # parser.add_argument('--cuda', dest='cuda', action='store_true') # TODO
 
     args = parser.parse_args()
     args.output = get_output_folder(args.output, args.env)
     if args.resume == 'default':
         args.resume = 'output/{}-run0'.format(args.env)
 
-    env = NormalizedEnv(gym.make('CSGO_ENV/CSGO_DUST2-v0'))
+    env = NormalizedEnv(gym.make(args.env))
 
     if args.seed > 0:
         np.random.seed(args.seed)
@@ -146,40 +147,3 @@ if __name__ == "__main__":
 
     else:
         raise RuntimeError('undefined mode {}'.format(args.mode))
-
-
-def train(number_of_episodes, agent, env,  evaluate, validate_steps, output, max_episode_length=450, debug=False):
-    
-    # iterate for x number of episodes
-    for i in number_of_episodes:
-        
-        #call env reset to sample intial information<goals, partial_obs, obs ect>
-        state, info = env.reset()
-        p_state = info['partial_state']
-        g_state = info['goal_state']
-        g_pstate = info['goal_partial_state']
-        
-        #iterate through 1 episode
-        for i in range(max_episode_length):
-            
-            #get partial observation from env
-        
-            #obtain action
-            action = agent.select_action(state) 
-            
-            #perform action 
-            next_state, reward, done, info = env.step(action)
-            
-            #store transition in replay buffer
-            self.memory.append(state, action, reward, next_state, done)
-            
-            
-        #iterate DDPGn
-        for i in range(40):
-            #16 // rollouts,
-            #40 opt
-            #128 replay buffer sample batch size
-            #10^5 batch size
-            sample_batch = self.memory.sample(128)
-            
-    
