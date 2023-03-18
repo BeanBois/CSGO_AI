@@ -136,6 +136,8 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rol
             #             eval_episode_rewards_history.append(eval_episode_reward)
             #             eval_episode_reward = 0.
 
+        if epoch % 4 == 0:
+            agent.save_model()
         # Log stats.
         epoch_train_duration = time.time() - epoch_start_time
         duration = time.time() - start_time

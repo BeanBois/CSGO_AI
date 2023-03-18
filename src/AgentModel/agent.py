@@ -194,7 +194,7 @@ class DDPG:
         self.gs = goal
         self.go = p_goal
 
-    def load_weights(self, output):
+    def load_weights(self, output='csgo_model_weights'):
         if output is None: return
 
         self.actor.load_state_dict(
