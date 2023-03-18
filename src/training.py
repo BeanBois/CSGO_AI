@@ -3,13 +3,14 @@ import time
 from collections import deque
 import pickle
 
-from baselines.ddpg.ddpg import DDPG
-from baselines.ddpg.util import mpi_mean, mpi_std, mpi_max, mpi_sum
-import baselines.common.tf_util as U
+# from baselines.ddpg.ddpg import DDPG
+from AgentModel.agent import DDPG
+from AgentModel.util import mpi_mean, mpi_std, mpi_max, mpi_sum
 
-from baselines import logger
+
+from AgentModel import logger
 import numpy as np
-import tensorflow as tf
+# import tensorflow as tf
 from mpi4py import MPI
 
 
@@ -30,10 +31,10 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rol
     logger.info(str(agent.__dict__.items()))
 
     # Set up logging stuff only for a single worker.
-    if rank == 0:
-        saver = tf.train.Saver()
-    else:
-        saver = None
+    # if rank == 0:
+    #     saver = tf.train.Saver()
+    # else:
+    #     saver = None
     
     step = 0
     episode = 0

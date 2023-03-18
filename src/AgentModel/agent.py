@@ -45,14 +45,6 @@ class Critic(nn.Module):
 class Actor(nn.Module):
     def __init__(self, state_dim, action_dim, action_range, goal_dim):
         super(Actor, self).__init__()
-        # self.conv1_state = nn.Conv2d(state_dim, 64, kernel_size=2)
-        # self.conv2_state = nn.Conv2d(64, 64, kernel_size=2)
-        # self.conv3_state = nn.Conv2d(64, 64, kernel_size=2)
-        # self.conv4_state = nn.Conv2d(64, 64, kernel_size=2)
-        # self.conv1_goal = nn.Conv2d(goal_dim, 64, kernel_size=2)
-        # self.conv2_goal = nn.Conv2d(64, 64, kernel_size=2)
-        # self.conv3_goal = nn.Conv2d(64, 64, kernel_size=2)
-        # self.conv4_goal = nn.Conv2d(64, 64, kernel_size=2)
         self.fc1 = nn.Linear(state_dim + goal_dim, 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc3 = nn.Linear(512, 512)
@@ -63,16 +55,6 @@ class Actor(nn.Module):
         # self.action_range = action_range
 
     def forward(self, state, goal):
-        # x1 = self.relu(self.conv1_state(state))
-        # x1 = self.relu(self.conv2_state(x1))
-        # x1 = self.relu(self.conv3_state(x1))
-        # x1 = self.relu(self.conv4_state(x1))
-        # x2 = self.relu(self.conv1_goal(goal))
-        # x2 = self.relu(self.conv2_goal(x2))
-        # x2 = self.relu(self.conv3_goal(x2))
-        # x2 = self.relu(self.conv4_goal(x2))
-        # x = torch.cat([x1, x2], dim=1)
-        # x = torch.cat([x.view(x.size(0), -1), goal.view(goal.size(0), -1)], dim=1)
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         x = self.relu(self.fc3(x))
@@ -109,16 +91,8 @@ class DDPG:
         
         #Create replay buffer
         self.memory = ReplayBuffer(limit=args.rmsize, window_length=args.window_length)
-        # self.random_process = OrnsteinUhlenbeckProcess(size=nb_actions, theta=args.ou_theta, mu=args.ou_mu, sigma=args.ou_sigma)
 
-        # Hyper-parameters
-        # self.batch_size = args.bsize
-        # self.tau = args.tau
-        # self.discount = args.discount
-        # self.depsilon = 1.0 / args.epsilon
-
-        # 
-        # self.epsilon = 1.0
+        
         self.s_t = None # Most recent state
         self.p_s_t = None # Most recent state
         self.a_t = None # Most recent action
@@ -204,11 +178,6 @@ class DDPG:
     #redo this
     #output of actor network is
     def select_action(self, p_s_t, g_o, decay_epsilon=True):
-        # action = to_numpy(
-        #     self.actor(to_tensor(np.array([p_s_t])), to_tensor(np.array([g_o])))
-        # ).squeeze(0)
-        # action += self.is_training*max(self.epsilon, 0)*self.random_process.sample()
-        # action = np.clip(action,action_range[0],action_range[1])
         action = self.actor(to_tensor(np.array([p_s_t])), to_tensor(np.array([g_o])))
         action = (action > 0.5).int()
         self.a_t = action
@@ -224,7 +193,6 @@ class DDPG:
         self.a_t = None
         self.gs = goal
         self.go = p_goal
-        # self.random_process.reset_states()
 
     def load_weights(self, output):
         if output is None: return

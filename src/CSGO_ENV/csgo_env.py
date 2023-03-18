@@ -8,7 +8,8 @@ import threading as th
 # from csgo_gsi_python import TRAINING
 import time
 from enemy_detection_server_client import ENEMY_SCREEN_DETECTOR,ENEMY_RADAR_DETECTOR
-
+from enemy_detection_server_client import EnemyDetectorClient
+from GameInterface.game_interface import GameClient
 # if TRAINING:
 #     from csgo_gsi_python import GSI_SERVER_TRAINING
 # from gsi_server import client.get_info as get_info
@@ -47,7 +48,8 @@ class CSGO_Env_Utils:
         )
 
     def action_space_domain():
-        return Tuple(
+        return Tuple([
+            Discrete(2),  # 0 for ignore, 1 for no movement key
             # shift pressed? #shift pressed == walking, else running
             Discrete(2),
             # ctrl pressed? #crouching basically, ctrl pressed == crouching, else standing
@@ -55,9 +57,12 @@ class CSGO_Env_Utils:
             # space pressed? #jumping basically, space pressed == jumping, else standing
             Discrete(2),
             Discrete(2),  # fire? #fire == 1, else 0 #left mouse click
-            # 0 for no button pressed, 1 for 'w', 2 for 'a', 3 for 's', 4 for 'd',
-            Discrete(5),
-        )
+            # # 0 for no button pressed, 1 for 'w', 2 for 'a', 3 for 's', 4 for 'd',
+            # Discrete(5),
+            #  0 for 'w', 1 for 'a', 2 for 's', 3 for 'd', <Binary Numbers>
+            Discrete(2), 
+            Discrete(2), 
+        ])
 
     def observation_space_domain(max_x, min_x, max_y, min_y, max_z, min_z, SCREEN_HEIGHT, SCREEN_WIDTH):
         return Dict({
@@ -95,208 +100,6 @@ class CSGO_Env_Utils:
             # 0 for ongoing, 1 for agent win, 2 for enemy win
             'winner': spaces.Discrete(3),
         })
-
-    # Use the csgo command console to configure
-    def configure_game(keyboard_controller, mouse_controller):
-        # open terminal
-        keyboard_controller.press('~')
-        keyboard_controller.release('~')
-        # configure game settings
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'sv_cheats', '1')  # allow cheats
-        # dont allow grenades or any utilities
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_buy_allow_grenades', '0')
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_c4timer', '40')  # Set bomb explode timer
-        # Set CT default primary weapon
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_ct_default_primary', 'weapon_m4a1')
-        # Set CT default secondary weapon
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_ct_default_secondary', 'weapon_usp_silencer')
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_t_default_primary', 'weapon_ak47')  # Set T default primary weapon
-        # Set T default secondary weapon
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_t_default_secondary', 'weapon_glock')
-
-        # setting what weapons to can be used, for which team
-        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_weapons_allow_heavy', '0')
-        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_weapons_allow_pistols', '-1')
-        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_weapons_allow_rifles', '-1')
-        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_weapons_allow_smgs', '0')
-        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_weapons_allow_snipers', '0')
-
-        # ff_damage_bullet_penetration 0/1 to allow bullet penetration
-
-        # interesting command mp_weapon_self_inflict_amount [_], 0 for no self inflict damage, 1 for self inflict damage for mimssing shot
-        # intersting command mp_plant_c4_anywhere to plant anywhere
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_give_player_c4', '1')  # Give T bomb
-        # dont switch team in half time
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_halftime', '0')
-
-        # sound distance
-        play_sound_distance = 1000
-        # CSGO_Env_Utils.csgo_type_command(keyboard_controller, 'play_distance', f'{play_sound_distance}') #dont show sound
-        # interesting command -- playgmaesound [Sound] can use to train sound model
-        # sound_device_list to list all sound device
-
-        # radarvisdistance [Distance
-
-        # bots
-        # CSGO_Env_Utils.csgo_type_command(keyboard_controller, 'bot_goto_selected', '0') #navigation
-        # CSGO_Env_Utils.csgo_type_command(keyboard_controller, 'bot_goto_mark', '0') #navigation
-
-        # dont allow grenades or any utilities
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'bot_allow_grenades', '0')
-        # dont allow grenades or any utilities
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'bot_allow_machine_guns', '0')
-        # dont allow grenades or any utilities
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'bot_allow_pistols', '1')
-        # dont allow grenades or any utilities
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'bot_allow_rifles', '1')
-        # dont allow grenades or any utilities
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'bot_allow_snipers', '0')
-        # dont allow grenades or any utilities
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'bot_allow_shotguns', '0')
-        # dont allow grenades or any utilities
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'bot_allow_sub_machine_guns', '0')
-        # dont allow grenades or any utilities
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'bot_allow_rogues', '0')
-
-        # CSGO_Env_Utils.csgo_type_command(keyboard_controller, 'notarget') # bot ignores player
-        # CSGO_Env_Utils.csgo_type_command(keyboard_controller, 'mp_random_spawn', '3') # random spawn for enemy bot, not agent
-        # CSGO_Env_Utils.csgo_type_command(keyboard_controller, 'mp_random_spawn_los', '1') # random spawn for enemy bot to ensure that enemy bot not in sight of agent
-        # CSGO_Env_Utils.csgo_type_command(keyboard_controller, 'bot_max_vision_distance_override', '1', '30') # random spawn for enemy bot, not agent
-        # [0:4] 0 :EASIEST, 1: EASY, 2: NORMAL, 3: HARD, 4: HARDEST
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'custom_bot_difficulty', '2')
-        # 1 [0:4] 0 :EASIEST, 1: EASY, 2: NORMAL, 3: HARD, 4: HARDEST
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'bot_difficulty', '2')
-
-        # close terminal
-        keyboard_controller.press('~')
-        keyboard_controller.release('~')
-
-    # server):
-    def start_game(map_name, map_data, keyboard_controller, mouse_controller, bombsite_choice):
-
-        # choose bombsite
-        bombsite = map_data[map_data['areaName'] == bombsite_choice].sample()
-        enemy_spawn = map_data[map_data['areaName']
-                               != bombsite_choice].sample()
-
-        bomb_position = Box(low=np.array([bombsite['northWestX'], bombsite['northWestY'], bombsite['northWestZ']]),
-                            high=np.array(
-                                [bombsite['southEastX'], bombsite['southEastY'], bombsite['southEastZ']]),
-                            dtype=np.float32).sample()
-        enemy_position = Box(low=np.array([enemy_spawn['northWestX'], enemy_spawn['northWestY'], enemy_spawn['northWestZ']]),
-                             high=np.array(
-                                 [enemy_spawn['southEastX'], enemy_spawn['southEastY'], enemy_spawn['southEastZ']]),
-                             dtype=np.float32).sample()
-
-        # open terminal
-        keyboard_controller.press('~')
-        keyboard_controller.release('~')
-
-        # first give the player the bomb
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'mp_give_player_c4', '1')  # Give T bomb
-
-        # then we spawn the enemy, but first we freeze bot first
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'bot_stop', '1')  # 1 bot
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'setpos', f'{enemy_position[0]}', f'{enemy_position[1]}', f'{enemy_position[2]}')  # 1 bot
-        # check if player stuck
-
-        CSGO_Env_Utils.csgo_type_command(keyboard_controller, 'bot_place')
-
-        # then we go to the bombsite
-        CSGO_Env_Utils.csgo_type_command(
-            keyboard_controller, 'setpos', f'{bomb_position[0]}', f'{bomb_position[1]}', f'{bomb_position[2]}')  # 1 bot
-        # check if player stuck if yes noclip to unstuck
-
-        # ensure that the player is at the bomb site
-        # player_info = server.get_info("player")
-        player_info = client.get_info("player")
-
-        print('player info : ', player_info)
-        curr_loc = np.array(
-            player_info['position'].split(','), dtype=np.float32)
-
-        # curr_loc = np.fromstring(player_info['location'], dtype = np.int32, sep = ',')
-        assert (
-            curr_loc[0] >= bombsite['northWestX'] and curr_loc[0] <= bombsite['southEastX'] and
-            curr_loc[1] >= bombsite['northWestY'] and curr_loc[1] <= bombsite['southEastY'] and
-            curr_loc[2] >= bombsite['northWestZ'] and curr_loc[2] <= bombsite['southEastZ']
-        )
-
-        # plant bomb
-
-        # player switch to bomb
-        keyboard_controller.press('5')
-        keyboard_controller.release('5')
-
-        # initialise bomb plant
-        with mouse_controller.pressed(Button.left):
-            # round_status = server.get_info('round')
-            round_status = client.get_info('round')
-            while 'bomb' not in round_status.keys():
-                # round_status = server.get_info('round')
-                round_status = client.get_info('round')
-                if 'bomb' in round_status.keys():
-                    if round_status['bomb'] == 'planted':
-                        # unfreeze bot and start the game
-                        CSGO_Env_Utils.csgo_type_command(
-                            keyboard_controller, 'bot_stop', '0')  # 1 bot
-                        break
-
-        print('bomb planted')
-
-    def csgo_type_command(keyboard_controller, command, *args):
-
-        for char in command:
-            keyboard_controller.press(char)
-            keyboard_controller.release(char)
-
-        for i in range(len(args)):
-            keyboard_controller.press(Key.space)
-            keyboard_controller.release(Key.space)
-            for char in args[i]:
-                keyboard_controller.press(char)
-                keyboard_controller.release(char)
-
-        # send command
-        keyboard_controller.press(Key.enter)
-        keyboard_controller.release(Key.enter)
-
-        print('command sent')
-
-    def reset_game():
-        pass
 
     # function from https://stackoverflow.com/questions/11144513/cartesian-product-of-x-and-y-array-points-into-single-array-of-2d-points
     def cartesian_product(*arrays):
@@ -379,8 +182,8 @@ class CSGO_Env(gym.Env):
         self.goal_space = Tuple([1,1,1]).shape
 
 
-        CSGO_Env_Utils.start_game(
-            self.MAP_NAME, self.MAP_DATA, self.keyboard_controller, self.mouse_controller)
+        # CSGO_Env_Utils.start_game(
+        #     self.MAP_NAME, self.MAP_DATA, self.keyboard_controller, self.mouse_controller)
 
     def _init_para(self):
         bombsite_choice = random.choice(['BombsiteA', 'BombsiteB'])
@@ -413,10 +216,9 @@ class CSGO_Env(gym.Env):
             if self.max_z is None or self.max_z < float(data["southEastZ"]):
                 self.max_z = float(data["southEastZ"])
         # then init game
-        CSGO_Env_Utils.configure_game(
-            self.keyboard_controller, self.mouse_controller)
-        CSGO_Env_Utils.start_game(
-            CSGO_Env.MAP_NAME, CSGO_Env.MAP_DATA, self.keyboard_controller, self.mouse_controller,bombsite_choice)
+        GameClient.send_action("configure")
+        GameClient.send_action(f"start {bombsite_choice}")
+       
 
     #(observation, reward, done, info)
     # each step corresponds to 0.1 seconds (OBSERVING_TIME or ACTION_TIME)
@@ -476,16 +278,20 @@ class CSGO_Env(gym.Env):
 
             # process img
             img = information['img']
+            enemy_information = EnemyDetectorClient.get_enemy_information()
 
-            enemy_on_radar = ENEMY_RADAR_DETECTOR.scan_for_enemy(img)
-            enemy_screen_coord = None
+            # enemy_on_radar = ENEMY_RADAR_DETECTOR.scan_for_enemy(img)
+            enemy_on_radar = enemy_information['enemy_on_radar'] 
+            enemy_screen_coord = enemy_information['enemy_screen_coord']
             # #now check if see enemy on screen
-            if enemy_on_radar:
+            # if enemy_on_radar:
                 #now check if see enemy on screen
-                enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
-            enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
+                
+                #now we tackle this
+                # enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
+            # enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
 
-            information['enemy_coords_on_screen'] = enemy_screen_coords
+            # information['enemy_coords_on_screen'] = enemy_screen_coords
             partial_information = information.copy()
 
             # img no longer needed
@@ -507,6 +313,7 @@ class CSGO_Env(gym.Env):
             # if enemy tries to defuse bomb, agent will know
             # if not enemy_on_radar or not (information['bomb']['state'] == 'defusing' and self._obs['bomb defusing'][0] == 0):
             if enemy_screen_coords is not None or not (information['bomb']['state'] == 'defusing' and self._obs['bomb_defusing'][0] == 0):
+                self._obs['enemy_coords_on_screen'] = enemy_screen_coords
                 partial_information['allplayers'] = None
 
             self._part_obs = self._get_partial_state(lock, partial_information)
@@ -522,6 +329,7 @@ class CSGO_Env(gym.Env):
         with lock:
             self._part_obs = self._make_partial_observation(information)
 
+# Reward function
     # TODO: adapt reward for partial state
     def _get_reward(self, prev_obs, prev_part_obs, lock, action):
         with lock:
@@ -603,10 +411,10 @@ class CSGO_Env(gym.Env):
                     reward += 0.001
 
                 # if shift/ctrl not press when moving , penalize for making sound
-                # action[1] corr to ctrl, action[0] corr to shift
-                # action[4] corr to movement key, action[2] corr to jump key
-                if (action[1] == 0 or action[0] == 0) and \
-                        (action[4] != 0 or action[2] != 0):
+                # action[2] corr to ctrl, action[1] corr to shift
+                # action[0] corr to movement key, action[2] corr to jump key
+                if (action[2] == 0 or action[1] == 0) and \
+                        (action[0] == 0 or action[3] != 0):
                     cost += 0.0005
 
                 # +0.02 if near goal state and not defusing bomb
@@ -625,96 +433,17 @@ class CSGO_Env(gym.Env):
                         reward -= 0.1
         return reward - cost
 
+# Action
     # way we apply action might result very straight forward
     # if action dont explicitly state to press a key, we release it
     def _apply_action(self, action):
-        shift_pressed = True if action[0] == 1 else False
-        ctrl_pressed = True if action[1] == 1 else False
-        spacebar_pressed = True if action[2] == 1 else False
-        movement_button = None
-        left_click = True if action[4] == 1 else False
-
-        enemy_screen_coords = ENEMY_SCREEN_DETECTOR.enemy_screen_coords
-        cursor_location = None
-        if enemy_screen_coords['body'] is not None:
-            cursor_location = enemy_screen_coords['body']
-        elif enemy_screen_coords['head'] is not None:
-            cursor_location = enemy_screen_coords['head']
-
-        if action[3] == 1:
-            movement_button = Key.w
-        elif action[3] == 2:
-            movement_button = Key.a
-        elif action[3] == 3:
-            movement_button = Key.s
-        elif action[3] == 4:
-            movement_button = Key.d
-
-        if movement_button is not None:
-            list_of_keys = [Key.w, Key.a, Key.s, Key.d] - [movement_button]
-            self.keyboard_controller.release(*list_of_keys)
-            if shift_pressed and ctrl_pressed and spacebar_pressed:
-                with self.keyboard_controller.pressed(Key.shift, Key.ctrl, Key.space):
-                    self.keyboard_controller.press(movement_button)
-            elif shift_pressed and ctrl_pressed:
-                self.keyboard_controller.release(Key.space)
-                with self.keyboard_controller.pressed(Key.shift, Key.ctrl):
-                    self.keyboard_controller.press(movement_button)
-            elif shift_pressed and spacebar_pressed:
-                self.keyboard_controller.release(Key.ctrl)
-                with self.keyboard_controller.pressed(Key.shift, Key.space):
-                    self.keyboard_controller.press(movement_button)
-            elif ctrl_pressed and spacebar_pressed:
-                self.keyboard_controller.release(Key.shift)
-                with self.keyboard_controller.pressed(Key.ctrl, Key.space):
-                    self.keyboard_controller.press(movement_button)
-            elif shift_pressed:
-                self.keyboard_controller.release(Key.ctrl, Key.space)
-                with self.keyboard_controller.pressed(Key.shift):
-                    self.keyboard_controller.press(movement_button)
-            elif ctrl_pressed:
-                self.keyboard_controller.release(Key.shift, Key.space)
-                with self.keyboard_controller.pressed(Key.ctrl):
-                    self.keyboard_controller.press(movement_button)
-            elif spacebar_pressed:
-                self.keyboard_controller.release(Key.shift, Key.ctrl)
-                with self.keyboard_controller.pressed(Key.space):
-                    self.keyboard_controller.press(movement_button)
-            else:
-                list_of_keys = [Key.w, Key.a, Key.s, Key.d] - [movement_button]
-                self.keyboard_controller.release(
-                    Key.shift, Key.ctrl, Key.space, *list_of_keys)
-                self.keyboard_controller.press(movement_button)
-
-        else:
-            list_of_keys = [Key.w, Key.a, Key.s, Key.d]
-            self.keyboard_controller.release(*list_of_keys)
-            if shift_pressed:
-                self.keyboard_controller.press(Key.shift)
-            else:
-                self.keyboard_controller.release(Key.shift)
-            if ctrl_pressed:
-                self.keyboard_controller.press(Key.ctrl)
-            else:
-                self.keyboard_controller.release(Key.ctrl)
-            if spacebar_pressed:
-                self.keyboard_controller.press(Key.space)
-            else:
-                self.keyboard_controller.release(Key.space)
-
-        if left_click:
-            if cursor_location is not None:
-                curr_cursor_position = self.mouse_controller.position
-                self.mouse_controller.move(
-                    cursor_location[0] - curr_cursor_position[0], cursor_location[1] - curr_cursor_position[1])
-            self.mouse_controller.click(Button.left)
-            self.mouse_controller.release(Button.left)
-
         # sleep to run through the timed thread
+        GameClient.send_action(action)
         time.sleep(self.ACTION_TIME)
     # TODO: Change datatype
     # DONE, TODO: Check
 
+# State implementation
     def _make_complete_observation(self, information):
         agent = information["player"]
         phase_cd = information["phase_countdowns"]
@@ -943,29 +672,28 @@ class CSGO_Env(gym.Env):
 
         }
 
+
     def reset(self):
         bombsite_choice = random.choice(['BombsiteA', 'BombsiteB'])
-        CSGO_Env_Utils.reset_game()
-        CSGO_Env_Utils.start_game(CSGO_Env.MAP_NAME, CSGO_Env.MAP_DATA, self.keyboard_controller, self.mouse_controller,bombsite_choice)
+        GameClient.send_action(f"restart {bombsite_choice}")
         return self.step(Tuple(0,0,0,0,0))
 
 # Goals implementation
-# Goals are basically a strategic location in the map
-# Extending on the idea of a universal policy
-# want to see if universal dynamic policy can be achieved with dynamic goals
-# so goal are safe spot in the map,
-# We give the agent a certain time to reach the goal state
-# if it does not reach the goal state, we dont really care, but if it does, we give it a reward
-# at goal state, we start rolling for another goal state, and the probability is varied wrt to time.
-# we let the environment take care of this, meaning goal generation will be running off sync with the environment steps,
-# tho it is still very much dependent on the environment observation
-# rolling probability can be done with k++ mean clustering
-# we care more about positioning and bomb state.
-# since bomb state is a binary, we use it to add bonus when its not defusing, and deduct bonus when its defusing and
-# agent is chasing sub goal
-# other than that, goal inherits other attributes of the environment
-# we can even try to reduce the dimension of goals!
-
+    # Goals are basically a strategic location in the map
+    # Extending on the idea of a universal policy
+    # want to see if universal dynamic policy can be achieved with dynamic goals
+    # so goal are safe spot in the map,
+    # We give the agent a certain time to reach the goal state
+    # if it does not reach the goal state, we dont really care, but if it does, we give it a reward
+    # at goal state, we start rolling for another goal state, and the probability is varied wrt to time.
+    # we let the environment take care of this, meaning goal generation will be running off sync with the environment steps,
+    # tho it is still very much dependent on the environment observation
+    # rolling probability can be done with k++ mean clustering
+    # we care more about positioning and bomb state.
+    # since bomb state is a binary, we use it to add bonus when its not defusing, and deduct bonus when its defusing and
+    # agent is chasing sub goal
+    # other than that, goal inherits other attributes of the environment
+    # we can even try to reduce the dimension of goals!
     # generate goal state wrt to a probability distribution that is dependent of
     # time_of_goal_state and distance_to_goal_state
     # we prefer 'closer' goal states, and we want probability of
