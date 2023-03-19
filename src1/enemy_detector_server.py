@@ -78,16 +78,22 @@ class EnemyScreenDetector:
         if self.held_image is None:
             self.held_image = image
         else:
-            if np.dot(image, self.held_image) <= 0.9:
-                self.held_image = image
+            tmp = image
+            sim_norm = cv2.matchTemplate(tmp, self.held_image, cv2.TM_CCOEFF_NORMED)
+            # a,b,c = tmp.shape
+            # tmp.resize((a,c,b))
+            # sim = sum(sum(sum(np.asarray(tmp) @ np.asarray(self.held_image))))
+            # sim_norm = sim/(np.linalg.norm(tmp)*np.linalg.norm(self.held_image))
+            print(sim_norm)
+            if sim_norm <= 0.9:
+                self.held_image = image #update the held image
                 return self._scan_for_enemy(image)
             else:
                 return self.enemy_screen_coords
 
     def _scan_for_enemy(self, image):
         image_processed = self._process_image(image)
-        self.held_image = image #update the held image since this is a new scan
-        pred = self.model(image, augment=False, visualize=False)[0]
+        pred = self.model(image_processed, augment=False, visualize=False)[0]
         pred = general.non_max_suppression(pred, self.conf_thres, self.iou_thres, agnostic=False)
         aims = []
         for i, det in enumerate(pred):
@@ -139,6 +145,10 @@ class EnemyScreenDetector:
         return self.enemy_screen_coords
 
     def _process_image(self,img0):
+        # img0 = img0.copy()
+        img0 = img0.transpose((2, 0, 1))[::-1]
+        print(img0.shape)
+        imgo = img0.transpose((2, 0, 1))[::-1]
         img0 = cv2.resize(img0, (self.re_x, self.re_y))
 
         img = augmentations.letterbox(img0, self.imgsz, stride=self.stride)[0]
@@ -181,13 +191,16 @@ class EnemyDetectorServer:
         while True:
             #receive the coordinates of the enemy on screen, and if enemy is present
             img = grabscreen.grab_screen(region=(0, 0, 1920, 1080)) #TODO: decide on region
+            # print(img.shape)
+            # cv2.imshow('window', img)
+            # cv2.waitKey(1) #comment out, jsut to check implementation
             x0 = RADAR_RANGE[0]
             y0 = RADAR_RANGE[1]
             x1 = RADAR_RANGE[2]
             y1 = RADAR_RANGE[3]
             radar_img = img[y0:y1, x0:x1]
-            cv2.imshow('radar', radar_img)
-            cv2.waitKey(1) #comment out, jsut to check implementation
+            # cv2.imshow('radar', radar_img)
+            # cv2.waitKey(1) #comment out, jsut to check implementation
             enemy_on_radar = ENEMY_RADAR_DETECTOR.scan_for_enemy(radar_img)
             if enemy_on_radar:
                 enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
@@ -203,3 +216,5 @@ class EnemyDetectorServer:
             data = str(data)
             s.sendto(data.encode('utf-8'), client)
         # s.close()
+
+
