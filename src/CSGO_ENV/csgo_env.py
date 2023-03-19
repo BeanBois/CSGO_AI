@@ -4,16 +4,12 @@ from gym.spaces import Dict, Tuple, Discrete, Box
 import numpy as np
 import random
 import threading as th
-# import servers, they have started already btw
-# from csgo_gsi_python import TRAINING
 import time
-from enemy_detection_server_client import ENEMY_SCREEN_DETECTOR,ENEMY_RADAR_DETECTOR
-from enemy_detection_server_client import EnemyDetectorClient
+from enemy_detection_client import SCREEN_WIDTH, SCREEN_HEIGHT
+from enemy_detection_client import EnemyDetectorClient
 from GameInterface.game_interface import GameClient
-# if TRAINING:
-#     from csgo_gsi_python import GSI_SERVER_TRAINING
-# from gsi_server import client.get_info as get_info
-from gsi_server import client
+
+from gsi_client import client
 
 # importing input library
 from pynput import mouse, keyboard
@@ -157,8 +153,8 @@ class CSGO_Env_Utils:
 class CSGO_Env(gym.Env):
     MAP_NAME = 'de_dust2'
     MAP_DATA = NAV_CSV[NAV_CSV["mapName"] == MAP_NAME]
-    SCREEN_HEIGHT = ENEMY_SCREEN_DETECTOR.re_x
-    SCREEN_WIDTH = ENEMY_SCREEN_DETECTOR.re_y
+    # SCREEN_HEIGHT = ENEMY_SCREEN_DETECTOR.re_x
+    # SCREEN_WIDTH = ENEMY_SCREEN_DETECTOR.re_y
     OBSERVING_TIME = 0.1
     ACTION_TIME = 0.1
     # Env is made up of segmented areas of map. Each area is represented by a super node
@@ -177,7 +173,7 @@ class CSGO_Env(gym.Env):
         self._time_of_goal_state = None
         # self._prev_action = None
         self.observation_space = CSGO_Env_Utils.observation_space_domain(
-            self.max_x, self.min_x, self.max_y, self.min_y, self.max_z, self.min_z, self.SCREEN_HEIGHT, self.SCREEN_WIDTH).shape
+            self.max_x, self.min_x, self.max_y, self.min_y, self.max_z, self.min_z, SCREEN_HEIGHT, SCREEN_WIDTH).shape
         self.action_space = CSGO_Env_Utils.action_space_domain().shape
         self.goal_space = Tuple([1,1,1]).shape
 

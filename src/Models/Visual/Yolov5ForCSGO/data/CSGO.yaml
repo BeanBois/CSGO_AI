@@ -1,8 +1,0 @@
-path: ../labelimg # dataset root dir
-train: images  # 训练集
-val: images  # 验证集
-
-
-# Classes
-nc: 2
-names: ['head', 'body']

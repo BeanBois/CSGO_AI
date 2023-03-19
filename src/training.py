@@ -5,30 +5,30 @@ import pickle
 
 # from baselines.ddpg.ddpg import DDPG
 from AgentModel.agent import DDPG
-from AgentModel.util import mpi_mean, mpi_std, mpi_max, mpi_sum
+# from AgentModel.util import mpi_mean, mpi_std, mpi_max, mpi_sum
 
 
-from AgentModel import logger
+# from AgentModel import logger
 import numpy as np
 # import tensorflow as tf
-from mpi4py import MPI
+# from mpi4py import MPI
 
 
 def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rollout_steps = 500, nb_eval_steps = 100, batch_size = 128, eval_env=None):
-    rank = MPI.COMM_WORLD.Get_rank()
+    # rank = MPI.COMM_WORLD.Get_rank()
 
 
     # assert (np.abs(env.action_space.low) == env.action_space.high).all()  # we assume symmetric actions.
     
     max_action = env.action_space.high
-    logger.info('scaling actions by {} before executing in env'.format(max_action))
+    # logger.info('scaling actions by {} before executing in env'.format(max_action))
     
     # agent = DDPG(env.state_space.shape, env.observation_space.shape, env.action_space.shape)
     agent = DDPG(env.observation_space, env.action_space, env.goal_space, device)
 
 
-    logger.info('Using agent with the following configuration:')
-    logger.info(str(agent.__dict__.items()))
+    # logger.info('Using agent with the following configuration:')
+    # logger.info(str(agent.__dict__.items()))
 
     # Set up logging stuff only for a single worker.
     # if rank == 0:
@@ -174,16 +174,15 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rol
         combined_stats['total/epochs'] = epoch + 1
         combined_stats['total/steps'] = t
         
-        for key in sorted(combined_stats.keys()):
-            logger.record_tabular(key, combined_stats[key])
-        logger.dump_tabular()
-        logger.info('')
-        logdir = logger.get_dir()
-        if rank == 0 and logdir:
-            if hasattr(env, 'get_state'):
-                with open(os.path.join(logdir, 'env_state.pkl'), 'wb') as f:
-                    pickle.dump(env.get_state(), f)
-            if eval_env and hasattr(eval_env, 'get_state'):
-                with open(os.path.join(logdir, 'eval_env_state.pkl'), 'wb') as f:
-                    pickle.dump(eval_env.get_state(), f)
-
+        # for key in sorted(combined_stats.keys()):
+        #     logger.record_tabular(key, combined_stats[key])
+        # logger.dump_tabular()
+        # logger.info('')
+        # logdir = logger.get_dir()
+        # if rank == 0 and logdir:
+        #     if hasattr(env, 'get_state'):
+        #         with open(os.path.join(logdir, 'env_state.pkl'), 'wb') as f:
+        #             pickle.dump(env.get_state(), f)
+        #     if eval_env and hasattr(eval_env, 'get_state'):
+        #         with open(os.path.join(logdir, 'eval_env_state.pkl'), 'wb') as f:
+        #             pickle.dump(eval_env.get_state(), f)

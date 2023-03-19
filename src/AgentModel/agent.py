@@ -4,7 +4,7 @@ import torch.optim as optim
 import numpy as np
 from collections import deque
 import random
-from util import *
+from .util import *
 
 class ReplayBuffer:
     def __init__(self, max_size):
@@ -18,10 +18,10 @@ class ReplayBuffer:
             self.buffer.pop(0)
     
     def sample(self, batch_size):
-        state_batch, p_state_batch, action_batch, reward_batch, next_state_batch, next_p_state_batch, goal_batch, p_goal_batch done_batch = zip(*random.sample(self.buffer, batch_size))
+        state_batch, p_state_batch, action_batch, reward_batch, next_state_batch, next_p_state_batch, goal_batch, p_goal_batch, done_batch = zip(*random.sample(self.buffer, batch_size))
         return torch.tensor(state_batch), torch.to_tensor(p_state_batch), \
                 torch.tensor(action_batch), torch.tensor(reward_batch).unsqueeze(1), \
-                torch.tensor(next_state_batch), torch.to_tensor(next_p_state_batch)\
+                torch.tensor(next_state_batch), torch.to_tensor(next_p_state_batch),\
                 torch.to_tensor(goal_batch), torch.to_tensor(p_goal_batch), torch.tensor(done_batch).unsqueeze(1)
 
 class Critic(nn.Module):
@@ -106,7 +106,7 @@ class DDPG:
     def update_policy(self):
         # Sample batch
         state_batch, p_state_batch ,action_batch,\
-        reward_batch, next_state_batch, next_p_state_batch\
+        reward_batch, next_state_batch, next_p_state_batch,\
         goal_batch, p_goal_batch , terminal_batch = self.memory.sample(self.batch_size)
 
         # Prepare for the target q batch
@@ -159,7 +159,7 @@ class DDPG:
         self.critic.cuda()
         self.critic_target.cuda()
 
-    def observe(self, s_t, p_s_t, a_t, r_t, s_t1, , p_st1, gs, go, done):
+    def observe(self, s_t, p_s_t, a_t, r_t, s_t1, p_st1, gs, go, done):
         if self.is_training:
             self.memory.push(s_t, p_s_t, a_t, r_t, s_t1, p_st1, gs, go ,done)
             self.s_t = s_t1
@@ -217,4 +217,3 @@ class DDPG:
 
     def seed(self,s):
         torch.manual_seed(s)
-        if USE_CUDA:
