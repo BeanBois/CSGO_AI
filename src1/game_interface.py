@@ -6,6 +6,7 @@ from pynput.mouse import Button
 import numpy as np
 import time
 from gym.spaces import  Box
+from awpy.data import NAV_CSV
 
 class GameServer:
 
@@ -13,10 +14,10 @@ class GameServer:
         self.keyboard_controller = keyboard.Controller()
         self.mouse_controller = mouse.Controller()
         self.ACTION_TIME = action_time
-        self.host = 'xxx'
-        self.port = 4000
+        self.host = '192.168.1.241'
+        self.port = 5000
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.client =('xxx', 4000)
+        self.client =('192.168.1.109', 5000)
         MAP_NAME = 'de_dust2'
         self.map_data = NAV_CSV[NAV_CSV["mapName"] == MAP_NAME]
 

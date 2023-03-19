@@ -1,7 +1,7 @@
-from Visual.Yolov5ForCSGO.aim_csgo.cs_model import cs_model
-from Visual.Yolov5ForCSGO.utils.general import general
-from Visual.Yolov5ForCSGO.utils.augmentations import augmentations
-from Visual.Yolov5ForCSGO.aim_csgo.grabscreen import grabscreen
+import Yolov5ForCSGO.aim_csgo.cs_model as cs_model
+import Yolov5ForCSGO.utils.general as general
+import Yolov5ForCSGO.utils.augmentations as augmentations
+import Yolov5ForCSGO.aim_csgo.grabscreen as grabscreen
 
 #server client code from : https://stackoverflow.com/questions/11352855/communication-between-two-computers-using-python-socket
 import socket
@@ -166,8 +166,9 @@ ENEMY_RADAR_DETECTOR = EnemyRadarDetector()
 class EnemyDetectorServer:
     def start_enemy_detection_model():
         
+        host = '192.168.1.241'
         
-        host = '127.0.0.1' #server ip
+        # host = '127.0.0.1' #server ip
         port = 4000
 
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -175,11 +176,11 @@ class EnemyDetectorServer:
         print("Server Started")
         
         # _, addr = s.recvfrom(1024)
-        client =('xxx', 4000)
+        client =('192.168.1.109', 4000)
         
         while True:
             #receive the coordinates of the enemy on screen, and if enemy is present
-            img = grabscreen(region=(0, 0, 1920, 1080)) #TODO: decide on region
+            img = grabscreen.grab_screen(region=(0, 0, 1920, 1080)) #TODO: decide on region
             x0 = RADAR_RANGE[0]
             y0 = RADAR_RANGE[1]
             x1 = RADAR_RANGE[2]
@@ -198,5 +199,7 @@ class EnemyDetectorServer:
                 data = {"enemy_on_screen" : "null", "enemy_screen_coords" : "null"}
             #then process the data from client, specifically
             #see if the enemy is present, and if so, get the coordinates of the enemy
+            # data = json.dumps(data)
+            data = str(data)
             s.sendto(data.encode('utf-8'), client)
         # s.close()
