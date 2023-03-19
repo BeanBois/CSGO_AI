@@ -1,5 +1,5 @@
 import threading as th
-from .game_interface import GameServer
+from .game_interface_server import GameServer
 from .enemy_detector_server import EnemyDetectorServer
 
 

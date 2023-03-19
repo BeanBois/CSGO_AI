@@ -7,10 +7,10 @@ import threading as th
 import time
 from enemy_detection_client import SCREEN_WIDTH, SCREEN_HEIGHT
 from enemy_detection_client import EnemyDetectorClient
-from GameInterface.game_interface import GameClient
+from GameInterface.game_interface_client import GameClient
 
 from gsi_client import client
-
+from awpy.data import NAV_CSV
 # importing input library
 from pynput import mouse, keyboard
 from pynput.mouse import Button
@@ -109,21 +109,28 @@ class CSGO_Env_Utils:
     def generate_set_of_goals(site):
         #hand picked goals sadly
         B = {
-            Tuple([-2157.99, 1814.03, 68.03]),
-            Tuple([-1639.76, 1620.03, 66.41]),
-            Tuple([-1394.03, 1978.68, 70.08]),
-            Tuple([-1819.93, 2477.03, 94.81]),
-            Tuple([-2084.75, 3117.96, 99.53]),
-            Tuple([-1362.03, 2755.43, 82.11]),
-            Tuple([-1271,41, 2481.42, 108.06]), 
+            # Tuple([-2157.99, 1814.03, 68.03]),
+            # Tuple([-1639.76, 1620.03, 66.41]),
+            # Tuple([-1394.03, 1978.68, 70.08]),
+            # Tuple([-1819.93, 2477.03, 94.81]),
+            # Tuple([-2084.75, 3117.96, 99.53]),
+            # Tuple([-1362.03, 2755.43, 82.11]),
+            # Tuple([-1271,41, 2481.42, 108.06]), 
+            (-2157.99, 1814.03, 68.03),
+            (-1639.76, 1620.03, 66.41),
+            (-1394.03, 1978.68, 70.08),
+            (-1819.93, 2477.03, 94.81),
+            (-2084.75, 3117.96, 99.53),
+            (-1362.03, 2755.43, 82.11),
+            (-1271,41, 2481.42, 108.06), 
         }
         A = {
-            Tuple([384.29,1935.1,160.07]),
-            Tuple([543.96, 2763.54, 161.43]),
-            Tuple([1235.10,2460.96,161.89]),
-            Tuple([1051.03, 3059.96, 195.22]),
-            Tuple([1329.03, 2407.05, 102.65]),
-            Tuple([1763.37, 1999.96, 65.14]),#a bombsite
+            (384.29,1935.1,160.07),
+            (543.96, 2763.54, 161.43),
+            (1235.10,2460.96,161.89),
+            (1051.03, 3059.96, 195.22),
+            (1329.03, 2407.05, 102.65),
+            (1763.37, 1999.96, 65.14),#a bombsite
         }
         if site == 'BombsiteA':
             return A
