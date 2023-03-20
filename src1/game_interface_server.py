@@ -7,7 +7,7 @@ import numpy as np
 import time
 from gym.spaces import  Box
 from awpy.data import NAV_CSV
-
+import re
 class GameServer:
 
     def __init__(self, action_time= 0.1):
@@ -20,6 +20,8 @@ class GameServer:
         self.client =('192.168.1.109', 5005)
         MAP_NAME = 'de_dust2'
         self.map_data = NAV_CSV[NAV_CSV["mapName"] == MAP_NAME]
+        self.socket.bind((self.host, self.port))
+
 
     def start_server(self):
         while True:
@@ -27,9 +29,9 @@ class GameServer:
     
     def get_action(self):
         
-        self.socket.bind((self.host, self.port))
         data, addr = self.socket.recvfrom(1024)
         data = data.decode('utf-8')
+        data = re.sub(r"\'", "\"", str(data))
         data = json.loads(data)
         done = bool(data['done'])
         action = data['action']
@@ -37,6 +39,7 @@ class GameServer:
             self.configure_game()
         elif action.startswith("start"):
             words = action.split()
+            print(words)
             self.start_game(words[1])
         elif action.startswith("restart"):
             words = action.split()
@@ -45,7 +48,7 @@ class GameServer:
             action = [int(i) for i in data['action'].split(',')]
             if not done:
                 self._apply_action(action)
-        self.socket.send("done".encode('utf-8'), self.client)
+        # self.socket.send("done".encode('utf-8'), self.client)
 
 
     def _apply_action(self, action):
@@ -56,6 +59,11 @@ class GameServer:
         left_click = True if action[4] == 1 else False
         enemy_screen_coords = self._obs['enemy_coords_on_screen']
         cursor_location = None
+        if action[8] == 1 and action[7] == 0:
+            self.mouse_controller.move(5, 0)
+        if action[7] == 1 and action[8] == 0:
+            self.mouse_controller.move(-5, 0)
+    
         if enemy_screen_coords['body'] is not None:
             cursor_location = enemy_screen_coords['body']
         elif enemy_screen_coords['head'] is not None:
@@ -137,8 +145,9 @@ class GameServer:
     
     def configure_game(self):
         # open terminal
-        self.keyboard_controller.press('~')
-        self.keyboard_controller.release('~')
+        self.keyboard_controller.press('`')
+        time.sleep(0.1)
+        self.keyboard_controller.release('`')
         # configure game settings
         self.csgo_type_command(
             self.keyboard_controller, 'sv_cheats', '1')  # allow cheats
@@ -148,46 +157,46 @@ class GameServer:
         self.csgo_type_command(
             self.keyboard_controller, 'mp_c4timer', '40')  # Set bomb explode timer
         # Set CT default primary weapon
-        self.csgo_type_command(
-            self.keyboard_controller, 'mp_ct_default_primary', 'weapon_m4a1')
-        # Set CT default secondary weapon
-        self.csgo_type_command(
-            self.keyboard_controller, 'mp_ct_default_secondary', 'weapon_usp_silencer')
-        self.csgo_type_command(
-            self.keyboard_controller, 'mp_t_default_primary', 'weapon_ak47')  # Set T default primary weapon
-        # Set T default secondary weapon
-        self.csgo_type_command(
-            self.keyboard_controller, 'mp_t_default_secondary', 'weapon_glock')
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'mp_ct_default_primary', 'weapon_m4a1')
+        # # Set CT default secondary weapon
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'mp_ct_default_secondary', 'weapon_usp_silencer')
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'mp_t_default_primary', 'weapon_ak47')  # Set T default primary weapon
+        # # Set T default secondary weapon
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'mp_t_default_secondary', 'weapon_glock')
 
-        # setting what weapons to can be used, for which team
-        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        self.csgo_type_command(
-            self.keyboard_controller, 'mp_weapons_allow_heavy', '0')
-        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        self.csgo_type_command(
-            self.keyboard_controller, 'mp_weapons_allow_pistols', '-1')
-        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        self.csgo_type_command(
-            self.keyboard_controller, 'mp_weapons_allow_rifles', '-1')
-        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        self.csgo_type_command(
-            self.keyboard_controller, 'mp_weapons_allow_smgs', '0')
-        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        self.csgo_type_command(
-            self.keyboard_controller, 'mp_weapons_allow_snipers', '0')
+        # # setting what weapons to can be used, for which team
+        # # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'mp_weapons_allow_heavy', '0')
+        # # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'mp_weapons_allow_pistols', '-1')
+        # # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'mp_weapons_allow_rifles', '-1')
+        # # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'mp_weapons_allow_smgs', '0')
+        # # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'mp_weapons_allow_snipers', '0')
 
         # ff_damage_bullet_penetration 0/1 to allow bullet penetration
 
         # interesting command mp_weapon_self_inflict_amount [_], 0 for no self inflict damage, 1 for self inflict damage for mimssing shot
         # intersting command mp_plant_c4_anywhere to plant anywhere
-        self.csgo_type_command(
-            self.keyboard_controller, 'mp_give_player_c4', '1')  # Give T bomb
-        # dont switch team in half time
-        self.csgo_type_command(
-            self.keyboard_controller, 'mp_halftime', '0')
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'mp_give_player_c4', '1')  # Give T bomb
+        # # dont switch team in half time
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'mp_halftime', '0')
 
         # sound distance
-        play_sound_distance = 1000
+        # play_sound_distance = 1000
         # self.csgo_type_command(self.keyboard_controller, 'play_distance', f'{play_sound_distance}') #dont show sound
         # interesting command -- playgmaesound [Sound] can use to train sound model
         # sound_device_list to list all sound device
@@ -234,10 +243,14 @@ class GameServer:
         self.csgo_type_command(
             self.keyboard_controller, 'bot_difficulty', '2')
 
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'bot_add_ct', 'medium')  # number of bot
+
         # close terminal
-        self.keyboard_controller.press('~')
-        self.keyboard_controller.release('~')
-        self.socket.send("done".encode('utf-8'), self.server)
+        self.keyboard_controller.press('`')
+        time.sleep(0.1)
+        self.keyboard_controller.release('`')
+        # self.socket.send("done".encode('utf-8'), self.server)
 
     # server):
     def start_game(self, bombsite_choice):
@@ -257,21 +270,21 @@ class GameServer:
                              dtype=np.float32).sample()
 
         # open terminal
-        self.self.keyboard_controller.press('~')
-        self.self.keyboard_controller.release('~')
+        self.keyboard_controller.press('`')
+        self.keyboard_controller.release('`')
 
         # first give the player the bomb
         self.csgo_type_command(
-            self.self.keyboard_controller, 'mp_give_player_c4', '1')  # Give T bomb
+            self.keyboard_controller, 'mp_give_player_c4', '1')  # Give T bomb
 
         # then we spawn the enemy, but first we freeze bot first
         self.csgo_type_command(
-            self.self.keyboard_controller, 'bot_stop', '1')  # 1 bot
-        self.csgo_type_command(
-            self.self.keyboard_controller, 'setpos', f'{enemy_position[0]}', f'{enemy_position[1]}', f'{enemy_position[2]}')  # 1 bot
-        # check if player stuck
+            self.keyboard_controller, 'bot_stop', '1')  # 1 bot
+        # self.csgo_type_command(
+        #     self.self.keyboard_controller, 'setpos', f'{enemy_position[0]}', f'{enemy_position[1]}', f'{enemy_position[2]}')  # 1 bot
+        # # check if player stuck
 
-        self.csgo_type_command(self.keyboard_controller, 'bot_place')
+        # self.csgo_type_command(self.keyboard_controller, 'bot_place')
 
         # then we go to the bombsite
         self.csgo_type_command(
@@ -300,8 +313,8 @@ class GameServer:
         self.keyboard_controller.release('5')
 
         # initialise bomb plant
-        with self.mouse_controller.pressed(Button.left):
-            time.sleep(4)
+        self.mouse_controller.press(Button.left)
+        time.sleep(4)
         self.mouse_controller.release(Button.left)
         self.csgo_type_command(self.keyboard_controller, 'bot_stop', '0')
             # # round_status = server.get_info('round')
@@ -317,9 +330,12 @@ class GameServer:
                         # break
 
         print('bomb planted')
-        self.socket.send("done".encode('utf-8'), self.server)
+        # close terminal
+        self.keyboard_controller.press('`')
+        self.keyboard_controller.release('`')
+        # self.socket.send("done".encode('utf-8'), self.server)
 
-    def csgo_type_command(self, command, *args):
+    def csgo_type_command(self, _ ,command, *args):
 
         for char in command:
             self.keyboard_controller.press(char)
@@ -335,7 +351,7 @@ class GameServer:
         # send command
         self.keyboard_controller.press(Key.enter)
         self.keyboard_controller.release(Key.enter)
-
+        time.sleep(0.5)
         print('command sent')
 
 

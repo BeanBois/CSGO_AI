@@ -9,5 +9,6 @@ game_server = GameServer()
 thread1 = th.Thread(target=game_server.start_server)
 thread2 = th.Thread(target=EnemyDetectorServer.start_enemy_detection_model)
 
+#let 2 thread share the socket!
 thread1.start()
-thread2.start()
+# thread2.start()
