@@ -8,8 +8,9 @@ import time
 from gym.spaces import  Box
 from awpy.data import NAV_CSV
 import re
-class GameServer:
+import random
 
+class GameServer:
     def __init__(self, action_time= 0.1):
         self.keyboard_controller = keyboard.Controller()
         self.mouse_controller = mouse.Controller()
@@ -294,6 +295,7 @@ class GameServer:
 
         # open terminal
         self.keyboard_controller.press('`')
+        time.sleep(0.1)
         self.keyboard_controller.release('`')
 
         # first give the player the bomb
@@ -329,6 +331,11 @@ class GameServer:
         #     curr_loc[2] >= bombsite['northWestZ'] and curr_loc[2] <= bombsite['southEastZ']
         # )
 
+        #close terminal
+        self.keyboard_controller.press('`')
+        time.sleep(0.1)
+        self.keyboard_controller.release('`')
+
         # plant bomb
 
         # player switch to bomb
@@ -339,6 +346,13 @@ class GameServer:
         self.mouse_controller.press(Button.left)
         time.sleep(4)
         self.mouse_controller.release(Button.left)
+
+
+        #open terminal
+        self.keyboard_controller.press('`')
+        time.sleep(0.1)
+        self.keyboard_controller.release('`')
+
         self.csgo_type_command(self.keyboard_controller, 'bot_stop', '0')
             # # round_status = server.get_info('round')
             # round_status = client.get_info('round')
@@ -355,6 +369,7 @@ class GameServer:
         print('bomb planted')
         # close terminal
         self.keyboard_controller.press('`')
+        time.sleep(0.1)
         self.keyboard_controller.release('`')
         # self.socket.send("done".encode('utf-8'), self.server)
 
