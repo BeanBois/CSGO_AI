@@ -14,10 +14,10 @@ class GameServer:
         self.keyboard_controller = keyboard.Controller()
         self.mouse_controller = mouse.Controller()
         self.ACTION_TIME = action_time
-        self.host = '192.168.1.241'
-        self.port = 5000
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.client =('192.168.1.109', 5005)
+        # self.host = '192.168.1.241'
+        # self.port = 5000
+        # self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # self.client =('192.168.1.109', 5005)
         MAP_NAME = 'de_dust2'
         self.map_data = NAV_CSV[NAV_CSV["mapName"] == MAP_NAME]
         self.socket.bind((self.host, self.port))
@@ -29,6 +29,7 @@ class GameServer:
     
     def get_action(self):
         
+        self.socket.bind((self.host, self.port))
         data, addr = self.socket.recvfrom(1024)
         data = data.decode('utf-8')
         data = re.sub(r"\'", "\"", str(data))
@@ -48,7 +49,7 @@ class GameServer:
             action = [int(i) for i in data['action'].split(',')]
             if not done:
                 self._apply_action(action)
-        # self.socket.send("done".encode('utf-8'), self.client)
+        self.socket.send("done".encode('utf-8'), self.client)
 
 
     def _apply_action(self, action):
@@ -247,10 +248,9 @@ class GameServer:
         #     self.keyboard_controller, 'bot_add_ct', 'medium')  # number of bot
 
         # close terminal
-        self.keyboard_controller.press('`')
-        time.sleep(0.1)
-        self.keyboard_controller.release('`')
-        # self.socket.send("done".encode('utf-8'), self.server)
+        self.keyboard_controller.press('~')
+        self.keyboard_controller.release('~')
+        self.socket.send("done".encode('utf-8'), self.server)
 
     def _get_bombsites_points(self, bombsite_choice):
         if bombsite_choice == 'BombsiteA':
@@ -353,10 +353,7 @@ class GameServer:
                         # break
 
         print('bomb planted')
-        # close terminal
-        self.keyboard_controller.press('`')
-        self.keyboard_controller.release('`')
-        # self.socket.send("done".encode('utf-8'), self.server)
+        self.socket.send("done".encode('utf-8'), self.server)
 
     def csgo_type_command(self, _ ,command, *args):
 
