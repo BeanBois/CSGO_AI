@@ -252,22 +252,45 @@ class GameServer:
         self.keyboard_controller.release('`')
         # self.socket.send("done".encode('utf-8'), self.server)
 
+    def _get_bombsites_points(self, bombsite_choice):
+        if bombsite_choice == 'BombsiteA':
+            return[
+            [-1366.031250, 2565.968750, 68.707779],
+            [-1470.027832, 2565.968750, 69.762558],
+            [-1554.365112, 2620.665771, 68.789566],
+            [-1643.440796, 2678.800293, 72.187271],
+            [-1648.400513, 2810.234863, 81.354736],
+            [-1480.651001, 2782.294434, 73.810066],
+            [-1423.031250, 2743.738281, 81.363113],
+            [-1574.565796, 2670.532715, 69.824219],
+            ]
+        else:
+            return[
+                [987.968750 , 2444.031250 , 160.964554,], 
+                [987.968750 , 2545.016846 , 160.028427,],   
+                [1150.484863,  2550.376953,  160.254578,], 
+                [1091.842529,  2390.350098,  161.772141,], 
+                [1235.968750,  2435.178223,  162.825745,], 
+                [1232.514893,  2348.031250,  163.591339,],              
+                [1235.995605,  2582.184326,  163.423294,], 
+            ]
     # server):
     def start_game(self, bombsite_choice):
 
         # choose bombsite
         bombsite = self.map_data[self.map_data['areaName'] == bombsite_choice].sample()
-        enemy_spawn = self.map_data[self.map_data['areaName']
-                               != bombsite_choice].sample()
+        # enemy_spawn = self.map_data[self.map_data['areaName']
+        #                        != bombsite_choice].sample()
 
-        bomb_position = Box(low=np.array([bombsite['northWestX'], bombsite['northWestY'], bombsite['northWestZ']]),
-                            high=np.array(
-                                [bombsite['southEastX'], bombsite['southEastY'], bombsite['southEastZ']]),
-                            dtype=np.float32).sample()
-        enemy_position = Box(low=np.array([enemy_spawn['northWestX'], enemy_spawn['northWestY'], enemy_spawn['northWestZ']]),
-                             high=np.array(
-                                 [enemy_spawn['southEastX'], enemy_spawn['southEastY'], enemy_spawn['southEastZ']]),
-                             dtype=np.float32).sample()
+        # bomb_position = Box(low=np.array([bombsite['northWestX'], bombsite['northWestY'], bombsite['northWestZ']]),
+        #                     high=np.array(
+        #                         [bombsite['southEastX'], bombsite['southEastY'], bombsite['southEastZ']]),
+        #                     dtype=np.float32).sample()
+        bomb_position = random.choice(self._get_bombsites_points(bombsite_choice))
+        # enemy_position = Box(low=np.array([enemy_spawn['northWestX'], enemy_spawn['northWestY'], enemy_spawn['northWestZ']]),
+        #                      high=np.array(
+        #                          [enemy_spawn['southEastX'], enemy_spawn['southEastY'], enemy_spawn['southEastZ']]),
+        #                      dtype=np.float32).sample()
 
         # open terminal
         self.keyboard_controller.press('`')

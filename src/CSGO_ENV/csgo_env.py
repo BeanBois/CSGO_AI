@@ -110,7 +110,7 @@ class CSGO_Env_Utils:
 
     def generate_set_of_goals(site):
         #hand picked goals sadly
-        B = {
+        B = [
             # Tuple([-2157.99, 1814.03, 68.03]),
             # Tuple([-1639.76, 1620.03, 66.41]),
             # Tuple([-1394.03, 1978.68, 70.08]),
@@ -125,18 +125,21 @@ class CSGO_Env_Utils:
             (-2084.75, 3117.96, 99.53),
             (-1362.03, 2755.43, 82.11),
             (-1271,41, 2481.42, 108.06), 
-        }
-        A = {
+        ]
+        A = [
             (384.29,1935.1,160.07),
             (543.96, 2763.54, 161.43),
             (1235.10,2460.96,161.89),
             (1051.03, 3059.96, 195.22),
             (1329.03, 2407.05, 102.65),
             (1763.37, 1999.96, 65.14),#a bombsite
-        }
+        ]
         if site == 'BombsiteA':
             return A
-        return B
+        return 
+        
+    def get_enemy_spawn_points(self, bombsite_choice):
+        pass
         
     # def _generate_complete_goal_state(self, goal, obs):
         # 2 kind of goal nature: Aggressive or Passive
