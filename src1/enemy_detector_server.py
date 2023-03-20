@@ -179,14 +179,14 @@ class EnemyDetectorServer:
         host = '192.168.1.241'
         
         # host = '127.0.0.1' #server ip
-        port = 4000
+        port = 4500
 
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.bind((host, port))
         print("Server Started")
         
         # _, addr = s.recvfrom(1024)
-        client =('192.168.1.109', 4000)
+        client =('192.168.1.109', 4505)
         
         while True:
             #receive the coordinates of the enemy on screen, and if enemy is present

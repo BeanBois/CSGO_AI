@@ -17,7 +17,7 @@ class GameServer:
         self.host = '192.168.1.241'
         self.port = 5000
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.client =('192.168.1.109', 5000)
+        self.client =('192.168.1.109', 5005)
         MAP_NAME = 'de_dust2'
         self.map_data = NAV_CSV[NAV_CSV["mapName"] == MAP_NAME]
 

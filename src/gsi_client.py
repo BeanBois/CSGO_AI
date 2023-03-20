@@ -7,11 +7,11 @@ import json
 
 class client:
     def get_info(key):
-        host='192.168.1.241' #client ip
+        host='192.168.1.109' #client ip
         # host='10.40.35.107' #client ip
         port = 4005
 
-        server = ('192.168.1.109', 4000)
+        server = ('192.168.1.70', 4000)
         # server = ('10.40.35.107', 4000)
         
         
@@ -23,7 +23,7 @@ class client:
         # print("Received from server: " + data)
         data = json.loads(data)
         # print("Received from server: " + str(data))
-        
+        print("Received from server: " + str(data))
         s.close()
         # if key == 'position' or key == 'forward':
         #     coords = data.split(',')

@@ -5,6 +5,7 @@ import numpy as np
 from collections import deque
 import random
 from .util import *
+from gym.spaces.utils import flatdim
 
 class ReplayBuffer:
     def __init__(self, max_size):
@@ -27,7 +28,7 @@ class ReplayBuffer:
 class Critic(nn.Module):
     def __init__(self, state_dim, action_dim, goal_dim):
         super(Critic, self).__init__()
-        self.fc1 = nn.Linear(state_dim + action_dim + goal_dim, 512)
+        self.fc1 = nn.Linear(flatdim(state_dim) + flatdim(action_dim) + flatdim(goal_dim), 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc3 = nn.Linear(512, 512)
         self.fc4 = nn.Linear(512, 1)
@@ -43,16 +44,15 @@ class Critic(nn.Module):
 
 
 class Actor(nn.Module):
-    def __init__(self, state_dim, action_dim, action_range, goal_dim):
+    def __init__(self, state_dim, action_dim, goal_dim):
         super(Actor, self).__init__()
-        self.fc1 = nn.Linear(state_dim + goal_dim, 512)
+        self.fc1 = nn.Linear(flatdim(state_dim) + flatdim(goal_dim), 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc3 = nn.Linear(512, 512)
-        self.fc4 = nn.Linear(512, action_dim) # action_dim = 7
+        self.fc4 = nn.Linear(512, flatdim(action_dim)) # action_dim = 9
         self.relu = nn.ReLU()
         # self.tanh = nn.Tanh()
         self.sigmoid = nn.Sigmoid()
-        # self.action_range = action_range
 
     def forward(self, state, goal):
         x = self.relu(self.fc1(x))
@@ -63,14 +63,14 @@ class Actor(nn.Module):
 
 
 class DDPG:
-    def __init__(self, state_dim, action_dim, action_range, goal_dim, device):
+    def __init__(self, state_dim, action_dim, goal_dim, device):
 
         self.device = device
-        self.actor = Actor(state_dim, action_dim, action_range).to(device)
-        self.critic = Critic(state_dim + action_dim, action_dim).to(device)
+        self.actor = Actor(state_dim, action_dim,goal_dim).to(device)
+        self.critic = Critic(state_dim, action_dim, goal_dim).to(device)
 
-        self.target_actor = Actor(state_dim, action_dim, action_range).to(device)
-        self.target_critic = Critic(state_dim + action_dim, action_dim).to(device)
+        self.target_actor = Actor(state_dim, action_dim,goal_dim).to(device)
+        self.target_critic = Critic(state_dim, action_dim, goal_dim).to(device)
 
         self.target_actor.load_state_dict(self.actor.state_dict())
         self.target_critic.load_state_dict(self.critic.state_dict())
@@ -84,13 +84,13 @@ class DDPG:
         self.batch_size = 128
         self.horizon = 50
         self.exploration_prob = 0.2
-        self.exploration_noise = 0.05 * action_range
+        self.exploration_noise = 0.05 
 
-        hard_update(self.actor_target, self.actor) # Make sure target is with the same weight
-        hard_update(self.critic_target, self.critic)
+        hard_update(self.target_actor, self.actor) # Make sure target is with the same weight
+        hard_update(self.target_critic, self.critic)
         
         #Create replay buffer
-        self.memory = ReplayBuffer(limit=args.rmsize, window_length=args.window_length)
+        self.memory = ReplayBuffer(max_size=10000)
 
         
         self.s_t = None # Most recent state
@@ -101,7 +101,7 @@ class DDPG:
         # self.is_training = True
 
         # 
-        if USE_CUDA: self.cuda()
+        # if USE_CUDA: self.cuda()
 
     def update_policy(self):
         # Sample batch
@@ -110,9 +110,9 @@ class DDPG:
         goal_batch, p_goal_batch , terminal_batch = self.memory.sample(self.batch_size)
 
         # Prepare for the target q batch
-        next_q_values = self.critic_target([
+        next_q_values = self.target_critic([
             to_tensor(next_state_batch, volatile=True),
-            self.actor_target(to_tensor(next_state_batch, volatile=True), to_tensor(p_goal_batch), volatile=True),
+            self.target_actor(to_tensor(next_state_batch, volatile=True), to_tensor(p_goal_batch), volatile=True),
             to_tensor(goal_batch, volatile=True),
         ])
         next_q_values.volatile=False
@@ -143,21 +143,21 @@ class DDPG:
         self.actor_optim.step()
 
         # Target update
-        soft_update(self.actor_target, self.actor, self.tau)
-        soft_update(self.critic_target, self.critic, self.tau)
+        soft_update(self.target_actor, self.actor, self.tau)
+        soft_update(self.target_critic, self.critic, self.tau)
         return value_loss.data[0], policy_loss.data[0]
 
     def eval(self):
         self.actor.eval()
-        self.actor_target.eval()
+        self.target_actor.eval()
         self.critic.eval()
-        self.critic_target.eval()
+        self.target_critic.eval()
 
     def cuda(self):
         self.actor.cuda()
-        self.actor_target.cuda()
+        self.target_actor.cuda()
         self.critic.cuda()
-        self.critic_target.cuda()
+        self.target_critic.cuda()
 
     def observe(self, s_t, p_s_t, a_t, r_t, s_t1, p_st1, gs, go, done):
         if self.is_training:

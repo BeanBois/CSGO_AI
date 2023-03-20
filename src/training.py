@@ -6,13 +6,14 @@ import pickle
 # from baselines.ddpg.ddpg import DDPG
 from AgentModel.agent import DDPG
 # from AgentModel.util import mpi_mean, mpi_std, mpi_max, mpi_sum
-
+import torch
 
 # from AgentModel import logger
 import numpy as np
 # import tensorflow as tf
 # from mpi4py import MPI
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rollout_steps = 500, nb_eval_steps = 100, batch_size = 128, eval_env=None):
     # rank = MPI.COMM_WORLD.Get_rank()
@@ -20,7 +21,7 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rol
 
     # assert (np.abs(env.action_space.low) == env.action_space.high).all()  # we assume symmetric actions.
     
-    max_action = env.action_space.high
+    # max_action = env.action_space.high
     # logger.info('scaling actions by {} before executing in env'.format(max_action))
     
     # agent = DDPG(env.state_space.shape, env.observation_space.shape, env.action_space.shape)
@@ -46,8 +47,8 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rol
     # sess.graph.finalize()
 
     #init agent and env
-    agent.reset()
     obs, p_obs, reward, done, goal, p_goal = env.reset()
+    agent.reset(obs, p_obs, goal, p_goal)
 
 
     if eval_env is not None:
