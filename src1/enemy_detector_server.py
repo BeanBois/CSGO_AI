@@ -149,9 +149,10 @@ class EnemyScreenDetector:
 
     def _process_image(self,img0):
         # img0 = img0.copy()
-        img0 = img0.transpose((2, 0, 1))[::-1]
-        print(img0.shape)
-        imgo = img0.transpose((2, 0, 1))[::-1]
+        # img0 = img0.transpose((2, 0, 1))[::-1]
+        # print(img0.shape)
+        # imgo = img0.transpose((2, 0, 1))[::-1]
+        img0 = img0.transpose((1,0,2))[::-1]
         img0 = cv2.resize(img0, (self.re_x, self.re_y))
 
         img = augmentations.letterbox(img0, self.imgsz, stride=self.stride)[0]
@@ -190,7 +191,8 @@ class EnemyDetectorServer:
             y0 = RADAR_RANGE[1]
             x1 = RADAR_RANGE[2]
             y1 = RADAR_RANGE[3]
-            radar_img = img[y0:y1, x0:x1]
+            radar_img = img.copy() 
+            radar_img = radar_img[y0:y1, x0:x1]
             # cv2.imshow('radar', radar_img)
             # cv2.waitKey(1) #comment out, jsut to check implementation
             enemy_on_radar = ENEMY_RADAR_DETECTOR.scan_for_enemy(radar_img)

@@ -8,6 +8,7 @@ import time
 from gym.spaces import  Box
 from awpy.data import NAV_CSV
 import re
+import random
 class GameServer:
 
     def __init__(self, action_time= 0.1):
@@ -353,7 +354,7 @@ class GameServer:
                         # break
 
         print('bomb planted')
-        self.socket.send("done".encode('utf-8'), self.server)
+        # self.socket.send("done".encode('utf-8'), self.server)
 
     def csgo_type_command(self, _ ,command, *args):
 

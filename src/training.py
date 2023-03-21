@@ -18,7 +18,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rollout_steps = 500, nb_eval_steps = 100, batch_size = 128, eval_env=None):
     # rank = MPI.COMM_WORLD.Get_rank()
 
-
+    print("start training")
     # assert (np.abs(env.action_space.low) == env.action_space.high).all()  # we assume symmetric actions.
     
     # max_action = env.action_space.high
@@ -75,6 +75,7 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rol
         for cycle in range(nb_epoch_cycles):
             # Perform rollouts.
             for t_rollout in range(nb_rollout_steps):
+                print("t_rollout: ", t_rollout)
                 # Predict next action.
                 action, q = agent.select_action(p_obs, p_goal)
                 obs = env.get_current_observation()

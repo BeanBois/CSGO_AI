@@ -136,7 +136,7 @@ class CSGO_Env_Utils:
         ]
         if site == 'BombsiteA':
             return A
-        return 
+        return B
         
     def get_enemy_spawn_points(self, bombsite_choice):
         pass
@@ -202,7 +202,7 @@ class CSGO_Env(gym.Env):
         self.mouse_controller = mouse.Controller()
         self.keyboard_controller = keyboard.Controller()
         self._set_of_goals = CSGO_Env_Utils.generate_set_of_goals(bombsite_choice)
-        self._goal_state = random.sample(self._set_of_goals, 1)
+        self._goal_state = random.choice(self._set_of_goals)
         self._partial_goal_state = self._make_partial_goal(self._goal_state)
 
         for i in range(len(CSGO_Env.MAP_DATA)):
