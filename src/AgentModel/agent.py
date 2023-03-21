@@ -7,13 +7,73 @@ import random
 from .util import *
 from gym.spaces.utils import flatdim
 
+
+
+def flatten_p_obs(obs):
+    enemy_pos = obs['enemy']['position'] 
+    enemy_loc = enemy_pos['location'] if enemy_pos['location'] is not None else np.array([np.nan,np.nan,np.nan])
+    enemy_forw = enemy_pos['forward'] if enemy_pos['forward'] is not None else  np.array([np.nan,np.nan,np.nan])
+    enemy_time_seen = enemy_pos['time_seen'] if enemy_pos['time_seen'] is not None else np.nan
+    enemy_health = obs['enemy']['health'] if obs['enemy']['health'] is not None else 100
+    enemy_coor_on_screen = obs['enemy']['enemy_coord_on_screen'] if obs['enemy']['enemy_coord_on_screen'] is not None else  np.array([np.nan,np.nan])
+    
+    agent_pos = obs['agent']['position']
+    agent_loc = agent_pos['location']
+    agent_forw = agent_pos['forward']
+    agent_gun = obs['agent']['agent_gun']
+    agent_bullets = obs['agent']['agent_bullets']
+    agent_health = obs['agent']['health']
+    
+    bomb_location = obs['bomb_location']['location'] 
+    bomb_defusing, time_of_info = obs['bomb_defusing'] 
+    if bomb_defusing is None:
+        bomb_defusing = 0
+    
+    
+    curr_time = obs['current_time'] if obs['current_time'] > 0 else 0
+    winner = obs['winner']
+    arr = np.concatenate((enemy_loc, enemy_forw, enemy_time_seen, enemy_health, enemy_coor_on_screen, agent_loc, agent_forw, agent_gun, agent_bullets, agent_health, bomb_location, bomb_defusing, time_of_info, curr_time, winner), axis=None)
+    arr.flatten()
+    print(arr)
+    
+    return arr
+
+def flatten_obs(p_obs):
+    enemy_pos = p_obs['enemy']['position']
+    enemy_loc = enemy_pos['location']
+    enemy_forw = enemy_pos['forward']
+    enemy_time_seen = enemy_pos['time_seen']
+    enemy_health = p_obs['enemy']['health']
+    enemy_coor_on_screen = p_obs['enemy']['enemy_coord_on_screen']
+    
+    agent_pos = p_obs['agent']['position']
+    agent_loc = agent_pos['location']
+    agent_forw = agent_pos['forward']
+    agent_gun = obs['agent']['agent_gun']
+    agent_bullets = obs['agent']['agent_bullets']
+    agent_health = p_obs['agent']['health']
+    
+    bomb_location = p_obs['bomb_location']['location']
+    bomb_defusing, time_of_info = p_obs['bomb_defusing']
+    
+    curr_time = p_obs['current_time'] if p_obs['current_time'] > 0 else 0
+    winner = p_obs['winner']
+    arr = np.concatenate((enemy_loc, enemy_forw, enemy_time_seen, enemy_health, enemy_coor_on_screen, agent_loc, agent_forw, agent_gun, agent_bullets, agent_health, bomb_location, bomb_defusing, time_of_info, curr_time, winner), axis=None)
+    arr.flatten()
+    print(arr)
+    return arr
+
+def flatten_goal(goal):
+    return np.array(goal)
+
+
 class ReplayBuffer:
     def __init__(self, max_size):
         self.buffer = []
         self.max_size = max_size
     
     def push(self, state, p_state, action, reward, next_state, next_p_state, goal, p_goal, done):
-        transition = (state, p_state, action, reward, next_state, next_p_state, goal, p_goal, done)
+        transition = (flatten_obs(state), flatten_p_obs(p_state), action, reward, flatten_obs(next_state), flatten_p_obs(next_p_state), flatten_goal(goal), flatten_goal(p_goal), done)
         self.buffer.append(transition)
         if len(self.buffer) > self.max_size:
             self.buffer.pop(0)
@@ -178,7 +238,9 @@ class DDPG:
     #redo this
     #output of actor network is
     def select_action(self, p_s_t, g_o, decay_epsilon=True):
-        action = self.actor(to_tensor(np.array([p_s_t])), to_tensor(np.array([g_o])))
+        x1 = flatten_p_obs(p_s_t)
+        x2 = flatten_goal(g_o)
+        action = self.actor(to_tensor(x1), to_tensor(x2))
         action = (action > 0.5).int()
         self.a_t = action
         return self._process_action(action)

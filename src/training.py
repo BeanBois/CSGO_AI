@@ -71,6 +71,7 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rol
     epoch_actions = []
     epoch_qs = []
     epoch_episodes = 0
+    print('Start training')
     for epoch in range(nb_epochs):
         for cycle in range(nb_epoch_cycles):
             # Perform rollouts.
@@ -94,7 +95,7 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rol
                 epoch_qs.append(q)
                 agent.observe(obs, p_obs, action, r, new_obs, new_p_obs, goal, p_goal ,done)
                 p_obs = new_p_obs
-
+                print("done: ", done)
                 if done:
                     # Episode done.
                     epoch_episode_rewards.append(episode_reward)

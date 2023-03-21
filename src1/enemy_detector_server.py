@@ -69,6 +69,7 @@ class EnemyScreenDetector:
         self.stride = int(self.model.stride.max())
         self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
         self.held_image = None
+        self.timer = 0
         self.enemy_screen_coords = {}
     
     
