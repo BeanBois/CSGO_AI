@@ -249,10 +249,9 @@ class GameServer:
         #     self.keyboard_controller, 'bot_add_ct', 'medium')  # number of bot
 
         # close terminal
-        self.keyboard_controller.press('`')
-        time.sleep(0.1)
-        self.keyboard_controller.release('`')
-        # self.socket.send("done".encode('utf-8'), self.server)
+        self.keyboard_controller.press('~')
+        self.keyboard_controller.release('~')
+        self.socket.send("done".encode('utf-8'), self.server)
 
     def _get_bombsites_points(self, bombsite_choice):
         if bombsite_choice == 'BombsiteA':

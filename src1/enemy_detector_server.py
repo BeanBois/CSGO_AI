@@ -92,65 +92,68 @@ class EnemyScreenDetector:
                 return self.enemy_screen_coords
 
     def _scan_for_enemy(self, image):
-        image_processed = self._process_image(image)
-        pred = self.model(image_processed, augment=False, visualize=False)[0]
-        pred = general.non_max_suppression(pred, self.conf_thres, self.iou_thres, agnostic=False)
-        aims = []
-        for i, det in enumerate(pred):
-            s = ''
-            s += '%gx%g' % image_processed.shape[2:]
-            gn = torch.tensor(image.shape)[[1, 0, 1, 0]]
-            if len(det):
-                det[:, :4] = general.scale_coords(image_processed.shape[2:], det[:, :4], image.shape).round()
+        try:
+            image_processed = self._process_image(image)
+            pred = self.model(image_processed, augment=False, visualize=False)[0]
+            pred = general.non_max_suppression(pred, self.conf_thres, self.iou_thres, agnostic=False)
+            aims = []
+            for i, det in enumerate(pred):
+                s = ''
+                s += '%gx%g' % image_processed.shape[2:]
+                gn = torch.tensor(image.shape)[[1, 0, 1, 0]]
+                if len(det):
+                    det[:, :4] = general.scale_coords(image_processed.shape[2:], det[:, :4], image.shape).round()
 
-                for c in det[:, -1].unique():
-                    n = (det[:, -1] == c).sum()
-                    s += f"{n} {names[int(c)]}{'s' * (n > 1)},"
+                    for c in det[:, -1].unique():
+                        n = (det[:, -1] == c).sum()
+                        s += f"{n} {names[int(c)]}{'s' * (n > 1)},"
 
-                for *xyxy, conf, cls in reversed(det):
-                    xywh = (general.xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
-                    line = (cls, *xywh)
-                    aim = ('%g ' * len(line)).rstrip() % line  # str
-                    aim = aim.split(' ')  # list
-                    aims.append(aim)
-                
-                
-                
-                
-                def _get_coords(x,y):
-                    return self.x * float(x), self.y * float(y)
-                
-                #theres only 1 enemy player in the game (apart from the agent). As such this is possible
-                
-                if len(aims) == 0:
-                    self.enemy_screen_coords = {
-                        'body' : (None, None),
-                        'head' : (None, None)
-                    }
-                #usually 
-                elif len(aims) == 1:
-                    x,y = _get_coords(aims[0][1], aims[0][2])
-                    self.enemy_screen_coords = {
-                        'body' : (x,y),
-                        'head' : (None, None)
-                    }
-                else:
-                    body_x,body_y = _get_coords(aims[1][1], aims[1][2])
-                    head_x,head_y = _get_coords(aims[0][1], aims[0][2])
+                    for *xyxy, conf, cls in reversed(det):
+                        xywh = (general.xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
+                        line = (cls, *xywh)
+                        aim = ('%g ' * len(line)).rstrip() % line  # str
+                        aim = aim.split(' ')  # list
+                        aims.append(aim)
                     
-                    self.enemy_screen_coords = {
-                        'body' : (body_x, body_y),
-                        'head' : (head_x, head_y)
-                    }
-        return self.enemy_screen_coords
+                    
+                    
+                    
+                    def _get_coords(x,y):
+                        return self.x * float(x), self.y * float(y)
+                    
+                    #theres only 1 enemy player in the game (apart from the agent). As such this is possible
+                    
+                    if len(aims) == 0:
+                        self.enemy_screen_coords = {
+                            'body' : (None, None),
+                            'head' : (None, None)
+                        }
+                    #usually 
+                    elif len(aims) == 1:
+                        x,y = _get_coords(aims[0][1], aims[0][2])
+                        self.enemy_screen_coords = {
+                            'body' : (x,y),
+                            'head' : (None, None)
+                        }
+                    else:
+                        body_x,body_y = _get_coords(aims[1][1], aims[1][2])
+                        head_x,head_y = _get_coords(aims[0][1], aims[0][2])
+                        
+                        self.enemy_screen_coords = {
+                            'body' : (body_x, body_y),
+                            'head' : (head_x, head_y)
+                        }
+            return self.enemy_screen_coords
+        except Exception as e:
+            return None
 
     def _process_image(self,img0):
-        try :
-            # img0 = img0.copy()
-            img0 = img0.transpose((2, 0, 1))[::-1]
-            print(img0.shape)
-            imgo = img0.transpose((2, 0, 1))[::-1]
-            img0 = cv2.resize(img0, (self.re_x, self.re_y))
+        # img0 = img0.copy()
+        # img0 = img0.transpose((2, 0, 1))[::-1]
+        # print(img0.shape)
+        # imgo = img0.transpose((2, 0, 1))[::-1]
+        img0 = img0.transpose((1,0,2))[::-1]
+        img0 = cv2.resize(img0, (self.re_x, self.re_y))
 
             img = augmentations.letterbox(img0, self.imgsz, stride=self.stride)[0]
 
@@ -177,35 +180,79 @@ ENEMY_RADAR_DETECTOR = EnemyRadarDetector()
 #This code will be ran by computer thats learning the game model. <The Reinfocement Learning Agent>
 #This pc can be in any OS, But i will be using MACXOS
 class EnemyDetectorServer:
-    def start_enemy_detection_model(s, client):
-        # while True:
-        #receive the coordinates of the enemy on screen, and if enemy is present
-        img = grabscreen.grab_screen(region=(0, 0, 1920, 1080)) #TODO: decide on region
-        # print(img.shape)
-        # cv2.imshow('window', img)
-        # cv2.waitKey(1) #comment out, jsut to check implementation
-        x0 = RADAR_RANGE[0]
-        y0 = RADAR_RANGE[1]
-        x1 = RADAR_RANGE[2]
-        y1 = RADAR_RANGE[3]
-        radar_img = img[y0:y1, x0:x1]
-        # cv2.imshow('radar', radar_img)
-        # cv2.waitKey(1) #comment out, jsut to check implementation
-        enemy_on_radar = ENEMY_RADAR_DETECTOR.scan_for_enemy(radar_img)
-        if enemy_on_radar:
-            enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
-            if enemy_screen_coords is not None:
-                data = {"enemy_on_screen" : "1", "enemy_screen_coords" : enemy_screen_coords}
+    
+    def enemy_detect(s, client):
+        
+        while True:
+            #receive the coordinates of the enemy on screen, and if enemy is present
+            img = grabscreen.grab_screen(region=(0, 0, 1920, 1080)) #TODO: decide on region
+            # print(img.shape)
+            # cv2.imshow('window', img)
+            # cv2.waitKey(1) #comment out, jsut to check implementation
+            x0 = RADAR_RANGE[0]
+            y0 = RADAR_RANGE[1]
+            x1 = RADAR_RANGE[2]
+            y1 = RADAR_RANGE[3]
+            radar_img = img.copy() 
+            radar_img = radar_img[y0:y1, x0:x1]
+            # cv2.imshow('radar', radar_img)
+            # cv2.waitKey(1) #comment out, jsut to check implementation
+            enemy_on_radar = ENEMY_RADAR_DETECTOR.scan_for_enemy(radar_img)
+            if enemy_on_radar:
+                enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
+                if enemy_screen_coords is not None:
+                    data = {"enemy_on_screen" : "1", "enemy_screen_coords" : enemy_screen_coords}
+                else:
+                    data = {"enemy_on_screen" : "1", "enemy_screen_coords" : "null"}           
             else:
-                data = {"enemy_on_screen" : "1", "enemy_screen_coords" : "null"}           
-        else:
-            data = {"enemy_on_screen" : "null", "enemy_screen_coords" : "null"}
-        #then process the data from client, specifically
-        #see if the enemy is present, and if so, get the coordinates of the enemy
-        # data = json.dumps(data)
-        data = str(data)
-        s.sendto(data.encode('utf-8'), client)
-        return
+                data = {"enemy_on_screen" : "null", "enemy_screen_coords" : "null"}
+            #then process the data from client, specifically
+            #see if the enemy is present, and if so, get the coordinates of the enemy
+            # data = json.dumps(data)
+            data = str(data)
+            s.sendto(data.encode('utf-8'), client)
+    def start_enemy_detection_model():
+        
+        host = '192.168.1.241'
+        
+        # host = '127.0.0.1' #server ip
+        port = 4500
+
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.bind((host, port))
+        print("Server Started")
+        
+        # _, addr = s.recvfrom(1024)
+        client =('192.168.1.109', 4505)
+        
+        while True:
+            #receive the coordinates of the enemy on screen, and if enemy is present
+            img = grabscreen.grab_screen(region=(0, 0, 1920, 1080)) #TODO: decide on region
+            # print(img.shape)
+            # cv2.imshow('window', img)
+            # cv2.waitKey(1) #comment out, jsut to check implementation
+            x0 = RADAR_RANGE[0]
+            y0 = RADAR_RANGE[1]
+            x1 = RADAR_RANGE[2]
+            y1 = RADAR_RANGE[3]
+            radar_img = img[y0:y1, x0:x1]
+            # cv2.imshow('radar', radar_img)
+            # cv2.waitKey(1) #comment out, jsut to check implementation
+            enemy_on_radar = ENEMY_RADAR_DETECTOR.scan_for_enemy(radar_img)
+            if enemy_on_radar:
+                enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
+                if enemy_screen_coords is not None:
+                    data = {"enemy_on_screen" : "1", "enemy_screen_coords" : enemy_screen_coords}
+                else:
+                    data = {"enemy_on_screen" : "1", "enemy_screen_coords" : "null"}           
+            else:
+                data = {"enemy_on_screen" : "null", "enemy_screen_coords" : "null"}
+            #then process the data from client, specifically
+            #see if the enemy is present, and if so, get the coordinates of the enemy
+            # data = json.dumps(data)
+            data = str(data)
+            s.sendto(data.encode('utf-8'), client)
+        
         # s.close()
 
 
