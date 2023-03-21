@@ -11,7 +11,9 @@ class server:
     def start_csgo_gsi_server():
         GSI_SERVER_TRAINING.start_server()
         # host = '192.168.0.12' #Server ip
-        host = '192.168.1.50'
+        # host = '192.168.1.50'
+        host = '192.168.1.70'
+
         # host='10.40.35.107' #client ip
         
         # host = '127.0.0.1'
@@ -26,9 +28,11 @@ class server:
             
             if data is not None:
                 data = data.decode('utf-8')
+                print(data)
                 print("Message from: " + str(addr))
                 # print("From connected user: " + data)
                 data = GSI_SERVER_TRAINING.get_info(data)
+                print(data)
                 data = re.sub(r"\'", "\"", str(data))
                 data = re.sub(r"True", "\"1T\"", data)
                 data = re.sub(r"False", "\"0F\"", data)

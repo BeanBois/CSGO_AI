@@ -7,6 +7,7 @@ import gamestate
 import information
 class PayloadParser:
     def parse_payload(self, payload, gamestate):
+        print(payload)
         for item in payload:
             if item == 'allplayers':
                 
