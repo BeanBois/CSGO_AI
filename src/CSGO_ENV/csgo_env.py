@@ -4,17 +4,13 @@ from gym.spaces import Dict, Tuple, Discrete, Box
 import numpy as np
 import random
 import threading as th
-# import servers, they have started already btw
-# from csgo_gsi_python import TRAINING
 import time
-from enemy_detection_server_client import ENEMY_SCREEN_DETECTOR,ENEMY_RADAR_DETECTOR
-from enemy_detection_server_client import EnemyDetectorClient
-from GameInterface.game_interface import GameClient
-# if TRAINING:
-#     from csgo_gsi_python import GSI_SERVER_TRAINING
-# from gsi_server import client.get_info as get_info
-from gsi_server import client
+from enemy_detection_client import SCREEN_WIDTH, SCREEN_HEIGHT
+from enemy_detection_client import EnemyDetectorClient
+from GameInterface.game_interface_client import GameClient
 
+from gsi_client import client
+from awpy.data import NAV_CSV
 # importing input library
 from pynput import mouse, keyboard
 from pynput.mouse import Button
@@ -62,40 +58,42 @@ class CSGO_Env_Utils:
             #  0 for 'w', 1 for 'a', 2 for 's', 3 for 'd', <Binary Numbers>
             Discrete(2), 
             Discrete(2), 
+            Discrete(2), #1 means move mouse cursor to right by 5, 0 means no movement
+            Discrete(2), #1 means move mouse cursor to left by 5 0 means no movement
         ])
 
     def observation_space_domain(max_x, min_x, max_y, min_y, max_z, min_z, SCREEN_HEIGHT, SCREEN_WIDTH):
         return Dict({
             'obs_type': spaces.Discrete(2),  # 0 for partial, 1 for  complete
-            'enemy': {
-                'position': {
+            'enemy': Dict({
+                'position': Dict({
                     # data['areaId'] map id, 10 char for buffer
                     'areaId': spaces.Text(10),
                     'location': CSGO_Env_Utils.location_domain(max_x, min_x, max_y, min_y, max_z, min_z),
                     'forward': CSGO_Env_Utils.forward(),
                     'time_seen': spaces.Discrete(TIME_STEPS),
-                },
-                'enemy_screen_location':  Box(low=np.array[0, 0], high=np.array[SCREEN_HEIGHT, SCREEN_WIDTH], dtype=np.int32),
+                }),
+                'enemy_screen_location':  Box(low=np.array([0, 0]), high=np.array([SCREEN_HEIGHT, SCREEN_WIDTH]), dtype=np.int32),
                 'health': spaces.Discrete(100),
-            },
-            'agent': {
-                'position': {
+            }),
+            'agent': Dict({
+                'position': Dict({
                     # data['areaId'] map id, 10 char for buffer
                     'areaId': spaces.Text(10),
                     'location': CSGO_Env_Utils.location_domain(max_x, min_x, max_y, min_y, max_z, min_z),
                     'forward': CSGO_Env_Utils.forward(),
-                },
+                }),
                 'agent_gun': spaces.Discrete(1),  # fixed
                 'agent_bullets': spaces.Discrete(30),  # fixed
                 'health':  spaces.Discrete(100),
-            },
-            'bomb_location': {
+            }),
+            'bomb_location': Dict({
                 # data['areaId'] map id, 10 char for buffer
                 'areaId': spaces.Text(10),
                 'location': CSGO_Env_Utils.location_domain(max_x, min_x, max_y, min_y, max_z, min_z),
-            },
+            }),
             # fixed, 0 for not defusing, 1 for defusing
-            'bomb_defusing': Tuple(spaces.Discrete(2), spaces.Discrete(TIME_STEPS)),
+            'bomb_defusing': Tuple([spaces.Discrete(2), spaces.Discrete(TIME_STEPS)]),
             'current_time': spaces.Discrete(TIME_STEPS),
             # 0 for ongoing, 1 for agent win, 2 for enemy win
             'winner': spaces.Discrete(3),
@@ -112,26 +110,36 @@ class CSGO_Env_Utils:
 
     def generate_set_of_goals(site):
         #hand picked goals sadly
-        B = {
-            Tuple([-2157.99, 1814.03, 68.03]),
-            Tuple([-1639.76, 1620.03, 66.41]),
-            Tuple([-1394.03, 1978.68, 70.08]),
-            Tuple([-1819.93, 2477.03, 94.81]),
-            Tuple([-2084.75, 3117.96, 99.53]),
-            Tuple([-1362.03, 2755.43, 82.11]),
-            Tuple([-1271,41, 2481.42, 108.06]), 
-        }
-        A = {
-            Tuple([384.29,1935.1,160.07]),
-            Tuple([543.96, 2763.54, 161.43]),
-            Tuple([1235.10,2460.96,161.89]),
-            Tuple([1051.03, 3059.96, 195.22]),
-            Tuple([1329.03, 2407.05, 102.65]),
-            Tuple([1763.37, 1999.96, 65.14]),#a bombsite
-        }
+        B = [
+            # Tuple([-2157.99, 1814.03, 68.03]),
+            # Tuple([-1639.76, 1620.03, 66.41]),
+            # Tuple([-1394.03, 1978.68, 70.08]),
+            # Tuple([-1819.93, 2477.03, 94.81]),
+            # Tuple([-2084.75, 3117.96, 99.53]),
+            # Tuple([-1362.03, 2755.43, 82.11]),
+            # Tuple([-1271,41, 2481.42, 108.06]), 
+            (-2157.99, 1814.03, 68.03),
+            (-1639.76, 1620.03, 66.41),
+            (-1394.03, 1978.68, 70.08),
+            (-1819.93, 2477.03, 94.81),
+            (-2084.75, 3117.96, 99.53),
+            (-1362.03, 2755.43, 82.11),
+            (-1271,41, 2481.42, 108.06), 
+        ]
+        A = [
+            (384.29,1935.1,160.07),
+            (543.96, 2763.54, 161.43),
+            (1235.10,2460.96,161.89),
+            (1051.03, 3059.96, 195.22),
+            (1329.03, 2407.05, 102.65),
+            (1763.37, 1999.96, 65.14),#a bombsite
+        ]
         if site == 'BombsiteA':
             return A
         return B
+        
+    def get_enemy_spawn_points(self, bombsite_choice):
+        pass
         
     # def _generate_complete_goal_state(self, goal, obs):
         # 2 kind of goal nature: Aggressive or Passive
@@ -157,8 +165,8 @@ class CSGO_Env_Utils:
 class CSGO_Env(gym.Env):
     MAP_NAME = 'de_dust2'
     MAP_DATA = NAV_CSV[NAV_CSV["mapName"] == MAP_NAME]
-    SCREEN_HEIGHT = ENEMY_SCREEN_DETECTOR.re_x
-    SCREEN_WIDTH = ENEMY_SCREEN_DETECTOR.re_y
+    # SCREEN_HEIGHT = ENEMY_SCREEN_DETECTOR.re_x
+    # SCREEN_WIDTH = ENEMY_SCREEN_DETECTOR.re_y
     OBSERVING_TIME = 0.1
     ACTION_TIME = 0.1
     # Env is made up of segmented areas of map. Each area is represented by a super node
@@ -168,18 +176,19 @@ class CSGO_Env(gym.Env):
         self._init_para()
         # observation space can be abstractly thought of as a set of nodes
         # each node encapsulates the following
+        self.lock = th.RLock()
         self._obs = None
         self._part_obs = None
         self._reward = 0
-        self._set_of
+        self._set_of_goals = None
         self._goal_state = None
         self._partial_goal_state = None
         self._time_of_goal_state = None
         # self._prev_action = None
         self.observation_space = CSGO_Env_Utils.observation_space_domain(
-            self.max_x, self.min_x, self.max_y, self.min_y, self.max_z, self.min_z, self.SCREEN_HEIGHT, self.SCREEN_WIDTH).shape
-        self.action_space = CSGO_Env_Utils.action_space_domain().shape
-        self.goal_space = Tuple([1,1,1]).shape
+            self.max_x, self.min_x, self.max_y, self.min_y, self.max_z, self.min_z, SCREEN_HEIGHT, SCREEN_WIDTH)
+        self.action_space = CSGO_Env_Utils.action_space_domain()
+        self.goal_space = CSGO_Env_Utils.location_domain(self.min_x, self.max_x, self.min_y, self.max_y, self.min_z, self.max_z)
 
 
         # CSGO_Env_Utils.start_game(
@@ -193,7 +202,7 @@ class CSGO_Env(gym.Env):
         self.mouse_controller = mouse.Controller()
         self.keyboard_controller = keyboard.Controller()
         self._set_of_goals = CSGO_Env_Utils.generate_set_of_goals(bombsite_choice)
-        self._goal_state = random.sample(self._set_of_goals, 1)
+        self._goal_state = random.choice(self._set_of_goals)
         self._partial_goal_state = self._make_partial_goal(self._goal_state)
 
         for i in range(len(CSGO_Env.MAP_DATA)):
@@ -223,8 +232,7 @@ class CSGO_Env(gym.Env):
     #(observation, reward, done, info)
     # each step corresponds to 0.1 seconds (OBSERVING_TIME or ACTION_TIME)
     def step(self, action):
-        # create lock
-        lock = th.RLock()
+        
 
         # get information and img
         information = {}
@@ -233,13 +241,22 @@ class CSGO_Env(gym.Env):
         information['round'] = client.get_info("round")
         information['allplayers'] = client.get_info("allplayers")
         information['bomb'] = client.get_info("bomb")
-
+        
+        round_info = information["round"]
+        match_result = round_info['win_team']
+        if match_result == 'T':
+            match_result = 1
+        elif match_result == 'CT':
+            match_result = 2
+        else:
+            match_result = 0
+            
         # create threads
         observing_thread = th.Timer(
-            CSGO_Env.OBSERVING_TIME, self._get_state, args=(lock, information))
+            CSGO_Env.OBSERVING_TIME, self._get_state, args=(information))
         # observing_thread_2 = th.Timer(CSGO_Env.OBSERVING_TIME, self._get_full_state, args = (lock,))
         action_thread = th.Timer(CSGO_Env.ACTION_TIME,
-                                 self._apply_action, args=(action,))
+                                 self._apply_action, args=(action, (match_result>0)))
 
         # get current_state
         prev_observation = self._obs
@@ -254,7 +271,7 @@ class CSGO_Env(gym.Env):
         # create reward thread
         # this is so to ensure that we calculate reward only after we have the next observation
         reward_thread = th.Thread(target=self._get_reward, args=(
-            prev_observation, prev_part_observation, lock, action))
+            prev_observation, prev_part_observation, action))
 
         # #get next observation
         # observing_thread_2.start()
@@ -273,15 +290,15 @@ class CSGO_Env(gym.Env):
         return self._part_obs
 
     # TODO: Fill in the blank <models> after finishing implementing them
-    def _get_state(self, lock, information):
-        with lock:
+    def _get_state(self, information):
+        with self.lock:
 
             # process img
-            img = information['img']
-            enemy_information = EnemyDetectorClient.get_enemy_information()
+            # img = information['img']
+            enemy_information = EnemyDetectorClient.get_enemy_info()
 
             # enemy_on_radar = ENEMY_RADAR_DETECTOR.scan_for_enemy(img)
-            enemy_on_radar = enemy_information['enemy_on_radar'] 
+            enemy_on_radar = enemy_information['enemy_on_screen'] 
             enemy_screen_coord = enemy_information['enemy_screen_coord']
             # #now check if see enemy on screen
             # if enemy_on_radar:
@@ -296,7 +313,7 @@ class CSGO_Env(gym.Env):
 
             # img no longer needed
             # information.pop('img')
-            self._obs = self._get_full_state(lock, information)
+            self._obs = self._get_full_state(information)
 
             # Making partial state
             # blanks for partial state as they have no access
@@ -316,23 +333,23 @@ class CSGO_Env(gym.Env):
                 self._obs['enemy_coords_on_screen'] = enemy_screen_coords
                 partial_information['allplayers'] = None
 
-            self._part_obs = self._get_partial_state(lock, partial_information)
+            self._part_obs = self._get_partial_state( partial_information)
             self._generate_goal()
 
-    def _get_full_state(self, lock, information):
+    def _get_full_state(self, information):
         # here we assume TRAINING is true
-        with lock:
+        with self.lock:
             self._obs = self._make_complete_observation(information)
 
-    def _get_partial_state(self, lock, information):
+    def _get_partial_state(self, information):
         # here we assume TRAINING is true
-        with lock:
+        with self.lock:
             self._part_obs = self._make_partial_observation(information)
 
 # Reward function
     # TODO: adapt reward for partial state
-    def _get_reward(self, prev_obs, prev_part_obs, lock, action):
-        with lock:
+    def _get_reward(self, prev_obs, prev_part_obs, action):
+        with self.lock:
             if prev_obs is None:
                 self._reward = 0
             else:
@@ -436,9 +453,9 @@ class CSGO_Env(gym.Env):
 # Action
     # way we apply action might result very straight forward
     # if action dont explicitly state to press a key, we release it
-    def _apply_action(self, action):
+    def _apply_action(self, action, done):
         # sleep to run through the timed thread
-        GameClient.send_action(action)
+        GameClient.send_action(action, done)
         time.sleep(self.ACTION_TIME)
     # TODO: Change datatype
     # DONE, TODO: Check
@@ -546,8 +563,8 @@ class CSGO_Env(gym.Env):
         # This is not an easy task since the vision cues for defusing is not very clear
         # To simulate this ability, once we have seen the bomb on the screen, we will
         # stream the state of the bomb from the game server
-        img = information['img']
-        bomb_seen_on_screen = BOMB_SCREEN_DETECTOR.scan_for_bomb(img)
+        # img = information['img']
+        # bomb_seen_on_screen = BOMB_SCREEN_DETECTOR.scan_for_bomb(img)
         curr_bomb_state = information['bomb']['state']
 
         # now if our time_of_info_bomb is way too old <5s, we delete the information as irrelevant
@@ -676,7 +693,15 @@ class CSGO_Env(gym.Env):
     def reset(self):
         bombsite_choice = random.choice(['BombsiteA', 'BombsiteB'])
         GameClient.send_action(f"restart {bombsite_choice}")
-        return self.step(Tuple(0,0,0,0,0))
+        # get information and img
+        information = {}
+        information['player'] = client.get_info("player")
+        information['phase_countdowns'] = client.get_info("phase_countdowns")
+        information['round'] = client.get_info("round")
+        information['allplayers'] = client.get_info("allplayers")
+        information['bomb'] = client.get_info("bomb")
+        self._get_state(information)
+        return self._obs, self._part_obs, self._goal_state, self._partial_goal_state
 
 # Goals implementation
     # Goals are basically a strategic location in the map
