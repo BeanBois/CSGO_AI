@@ -5,21 +5,21 @@ import socket
 host = '192.168.1.241'
 
 # host = '127.0.0.1' #server ip
-port = 4500
+port = 5000
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.bind((host, port))
 client = ('192.168.1.109', 5005)
 
 # host = '127.0.0.1' #server ip
-port = 4000
+# port = 4000
 
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.bind((host, port))
-print("Server Started")
+# s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# s.bind((host, port))
+# print("Server Started")
     
-# _, addr = s.recvfrom(1024)
-client =('192.168.1.109', 4005)
+# # _, addr = s.recvfrom(1024)
+# client =('192.168.1.109', 4005)
 
 game_server = GameServer()
 # enemy_detector_server = EnemyDetectorServer()

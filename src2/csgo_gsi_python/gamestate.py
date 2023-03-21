@@ -1,6 +1,7 @@
-# import information
-# import information
-from . import information
+
+import information
+# from . import information
+
 class GameState:
     def __init__(self):
         self.player = information.Player()
