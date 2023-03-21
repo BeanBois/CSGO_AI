@@ -21,6 +21,7 @@ class client:
         data, addr = s.recvfrom(1024*4)
         data = data.decode('utf-8')
         # print("Received from server: " + data)
+        print(f'key: {key} data: {data}')
         data = json.loads(data)
         # print("Received from server: " + str(data))
         print("Received from server: " + str(data))

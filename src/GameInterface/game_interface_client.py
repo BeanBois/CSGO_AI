@@ -4,9 +4,9 @@ import socket
 class GameClient:
 
     def send_action(action, done=False):
-        port = 4005
+        port = 5005
         host = '192.168.1.109'
-        server = ('192.168.1.241', 4000)
+        server = ('192.168.1.241', 5000)
         
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.bind((host, port))

@@ -299,7 +299,7 @@ class CSGO_Env(gym.Env):
 
             # enemy_on_radar = ENEMY_RADAR_DETECTOR.scan_for_enemy(img)
             enemy_on_radar = enemy_information['enemy_on_screen'] 
-            enemy_screen_coord = enemy_information['enemy_screen_coord']
+            enemy_screen_coords = enemy_information['enemy_screen_coords']
             # #now check if see enemy on screen
             # if enemy_on_radar:
                 #now check if see enemy on screen
@@ -475,7 +475,6 @@ class CSGO_Env(gym.Env):
         enemy = {}
         # players = GSI_SERVER_TRAINING.get_info("allplayers")#returns dictionary of bombstate
         players = information["allplayers"]  # returns dictionary of bombstate
-
         for player in players:
             if player['name'] != agent['name']:
                 enemy = player

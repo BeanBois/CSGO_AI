@@ -10,7 +10,7 @@ import socket
 import json
 import pandas as pd
 
-
+import re
 
 
 RADAR_RANGE = (10,65,145,200)
@@ -18,14 +18,15 @@ SCREEN_WIDTH,SCREEN_HEIGHT = (1920, 1024)
 class EnemyDetectorClient:
     def get_enemy_info():
         host='192.168.1.109' #client ip
-        port = 6005
+        port = 5005
 
-        server = ('192.168.1.241', 6000)
+        server = ('192.168.1.241', 5000)
         
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.bind((host,port))
         data, addr = s.recvfrom(1024)
         data = data.decode('utf-8')
+        data = re.sub(r"\'", "\"", str(data))
         data = json.loads(data)
         print("Received from server: " + str(data))
         s.close()

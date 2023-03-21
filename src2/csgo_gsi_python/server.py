@@ -83,12 +83,19 @@ class GSIServerSpectator(HTTPServer):
                 return False
             if "object" in str(state) and target != "allplayers":
                 return vars(state)
+            if target == "allplayers":
+                return self._get_allplayers(state)
             else:
                 return state
         except Exception as E:
             print(E)
             return False
-
+    
+    def _get_allplayers(self, state):
+        allplayers = {}
+        for player in state:
+            allplayers[player] = vars(state[player])
+        return allplayers
 class RequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers["Content-Length"])
