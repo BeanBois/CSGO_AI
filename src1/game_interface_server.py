@@ -15,22 +15,21 @@ class GameServer:
         self.keyboard_controller = keyboard.Controller()
         self.mouse_controller = mouse.Controller()
         self.ACTION_TIME = action_time
-        self.host = '192.168.1.241'
-        self.port = 5000
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.client =('192.168.1.109', 5005)
+        # self.host = '192.168.1.241'
+        # self.port = 5000
+        # self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # self.client =('192.168.1.109', 5005)
         MAP_NAME = 'de_dust2'
         self.map_data = NAV_CSV[NAV_CSV["mapName"] == MAP_NAME]
-        self.socket.bind((self.host, self.port))
+        # self.socket.bind((self.host, self.port))
 
 
     def start_server(self):
         while True:
             self.get_action()
     
-    def get_action(self):
-        
-        data, addr = self.socket.recvfrom(1024)
+    def get_action(self, s, client):
+        data, addr = s.recvfrom(1024)
         data = data.decode('utf-8')
         data = re.sub(r"\'", "\"", str(data))
         data = json.loads(data)
@@ -49,7 +48,9 @@ class GameServer:
             action = [int(i) for i in data['action'].split(',')]
             if not done:
                 self._apply_action(action)
-        # self.socket.send("done".encode('utf-8'), self.client)
+        # s.send("done".encode('utf-8'), client)
+        print('action applied')
+        return
 
 
     def _apply_action(self, action):
@@ -369,7 +370,7 @@ class GameServer:
         print('bomb planted')
         # close terminal
         self.keyboard_controller.press('`')
-        time.sleep(0.1)
+        time.sleep(0.1) 
         self.keyboard_controller.release('`')
         # self.socket.send("done".encode('utf-8'), self.server)
 
