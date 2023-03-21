@@ -81,7 +81,11 @@ class GSIServerSpectator(HTTPServer):
             else:
                 print("Too many arguments.")
                 return False
+<<<<<<< HEAD
             if "object" in str(state) and target != "allplayers":
+=======
+            if "object" in str(state) and target != "allplayers" :
+>>>>>>> 6f076ee (import fixes)
                 return vars(state)
             if target == "allplayers":
                 return self._get_allplayers(state)
