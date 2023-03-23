@@ -12,11 +12,14 @@ class server:
         GSI_SERVER_TRAINING.start_server()
         # host = '192.168.0.12' #Server ip
         # host = '192.168.1.50'
+<<<<<<< HEAD
         host = '192.168.1.70'
 
+=======
+>>>>>>> 53fc1f48b0bd2d4ec6cc9e06fced79780944f1f9
         # host='10.40.35.107' #client ip
         
-        # host = '127.0.0.1'
+        host = '127.0.0.1'
         port = 4000
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.bind((host, port))

@@ -18,7 +18,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-RADAR_RANGE = (10,65,145,200)
+RADAR_RANGE = (20,75,285,330)
 SCREEN_WIDTH,SCREEN_HEIGHT = (1920, 1080)
 class EnemyRadarDetector:
     
@@ -210,6 +210,7 @@ class EnemyDetectorServer:
         # data = json.dumps(data)
         data = str(data)
         s.sendto(data.encode('utf-8'), client)
+    
     def start_enemy_detection_model():
         
         host = '192.168.1.241'

@@ -35,7 +35,6 @@ def flatten_p_obs(obs):
     arr = np.concatenate((enemy_loc, enemy_forw, enemy_time_seen, enemy_health, enemy_coor_on_screen, agent_loc, agent_forw, agent_gun, agent_bullets, agent_health, bomb_location, bomb_defusing, time_of_info, curr_time, winner), axis=None)
     arr.flatten()
     print(arr)
-    
     return arr
 
 def flatten_obs(p_obs):
@@ -49,8 +48,8 @@ def flatten_obs(p_obs):
     agent_pos = p_obs['agent']['position']
     agent_loc = agent_pos['location']
     agent_forw = agent_pos['forward']
-    agent_gun = obs['agent']['agent_gun']
-    agent_bullets = obs['agent']['agent_bullets']
+    agent_gun = p_obs['agent']['agent_gun']
+    agent_bullets = p_obs['agent']['agent_bullets']
     agent_health = p_obs['agent']['health']
     
     bomb_location = p_obs['bomb_location']['location']
