@@ -17,10 +17,13 @@ RADAR_RANGE = (10,65,145,200)
 SCREEN_WIDTH,SCREEN_HEIGHT = (1920, 1024)
 class EnemyDetectorClient:
     def get_enemy_info():
-        host='192.168.1.109' #client ip
+        # host='192.168.1.109' #client ip
+        host = '10.40.212.48'
         port = 5005
 
-        server = ('192.168.1.241', 5000)
+        # server = ('192.168.1.241', 5000)
+        server_port = 5000
+        server = ('10.40.36.226',server_port)
         
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.bind((host,port))

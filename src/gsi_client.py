@@ -6,12 +6,20 @@ import socket
 import json
 
 class client:
+    
     def get_info(key):
-        host='192.168.1.109' #client ip
+        # host='192.168.1.109' #client ip
         # host='10.40.35.107' #client ip
+        # host='10.40.35.107' #client ip
+        
+        #to run by itself
+        host = '127.0.0.1'
         port = 4005
-
-        server = ('192.168.1.70', 4000)
+        server_port = 4000
+        server = ('127.0.0.1', server_port)
+        
+        # server = ('192.168.1.70', 4000)
+        # server = ('192.168.1.70', 4000)
         # server = ('10.40.35.107', 4000)
         
         
@@ -30,3 +38,4 @@ class client:
         #     coords = data.split(',')
         #     return coords
         return data
+    
