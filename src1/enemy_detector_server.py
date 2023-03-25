@@ -19,7 +19,12 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
+<<<<<<< HEAD
 RADAR_RANGE = (20,75,285,330)
+=======
+# RADAR_RANGE = (10,65,145,200)
+RADAR_RANGE = (20, 75, 285, 330)
+>>>>>>> 3ad95ab (src1 fixes)
 SCREEN_WIDTH,SCREEN_HEIGHT = (1920, 1080)
 class EnemyRadarDetector:
     
@@ -70,10 +75,25 @@ class EnemyScreenDetector:
         self.stride = int(self.model.stride.max())
         self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
         self.held_image = None
+<<<<<<< HEAD
         self.timer = 0
         self.enemy_screen_coords = {}
     
+=======
+        self.enemy_screen_coords = {'body' : (None, None), 'head' : (None, None)}
+>>>>>>> 3ad95ab (src1 fixes)
     
+    def get_enemy_coords(self):
+        if self.enemy_screen_coords is None:
+            return None
+        else:
+            if self.enemy_screen_coords['head'] is not (None,None):
+                return self.enemy_screen_coords['head']
+            elif self.enemy_screen_coords['body'] is not (None,None):
+                return self.enemy_screen_coords['body']
+            else:
+                return None
+
     #returns the x,y coordinates of the enemy
     # return (None,None) if no enemy detected
     def scan_for_enemy(self, image):

@@ -2,9 +2,9 @@
 # import gamestate
 import json
 # import information
-# from . import gamestate, information
-import gamestate
-import information
+from . import gamestate, information
+# import gamestate
+# import information
 class PayloadParser:
     def parse_payload(self, payload, gamestate):
         for item in payload:

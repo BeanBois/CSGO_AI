@@ -9,6 +9,7 @@ from gym.spaces import  Box
 from awpy.data import NAV_CSV
 import re
 import random
+from enemy_detector_server import ENEMY_SCREEN_DETECTOR
 
 class GameServer:
     def __init__(self, action_time= 0.1):
@@ -59,17 +60,19 @@ class GameServer:
         spacebar_pressed = True if action[3] == 1 else False
         movement_button = None
         left_click = True if action[4] == 1 else False
-        enemy_screen_coords = self._obs['enemy_coords_on_screen']
+        # enemy_screen_coords = self._obs['enemy_coords_on_screen']
         cursor_location = None
+        cursor_location = ENEMY_SCREEN_DETECTOR.get_enemy_coords()
+
         if action[8] == 1 and action[7] == 0:
             self.mouse_controller.move(5, 0)
         if action[7] == 1 and action[8] == 0:
             self.mouse_controller.move(-5, 0)
     
-        if enemy_screen_coords['body'] is not None:
-            cursor_location = enemy_screen_coords['body']
-        elif enemy_screen_coords['head'] is not None:
-            cursor_location = enemy_screen_coords['head']
+        # if enemy_screen_coords['body'] is not None:
+        #     cursor_location = enemy_screen_coords['body']
+        # elif enemy_screen_coords['head'] is not None:
+        #     cursor_location = enemy_screen_coords['head']
         if action[0] == 0:
             if action[5] == 0 and action[6] == 0:
                 movement_button = Key.w
@@ -127,7 +130,7 @@ class GameServer:
                 self.keyboard_controller.press(Key.ctrl)
             else:
                 self.keyboard_controller.release(Key.ctrl)
-            if spacebar_pressed:
+            if spacebar_pressed:    
                 self.keyboard_controller.press(Key.space)
             else:
                 self.keyboard_controller.release(Key.space)
@@ -158,6 +161,8 @@ class GameServer:
             self.keyboard_controller, 'mp_buy_allow_grenades', '0')
         self.csgo_type_command(
             self.keyboard_controller, 'mp_c4timer', '40')  # Set bomb explode timer
+        self.csgo_type_command(
+            self.keyboard_controller, 'mp_autokick', '0')
         # Set CT default primary weapon
         # self.csgo_type_command(
         #     self.keyboard_controller, 'mp_ct_default_primary', 'weapon_m4a1')
@@ -213,26 +218,26 @@ class GameServer:
         self.csgo_type_command(
             self.keyboard_controller, 'bot_allow_grenades', '0')
         # dont allow grenades or any utilities
-        self.csgo_type_command(
-            self.keyboard_controller, 'bot_allow_machine_guns', '0')
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'bot_allow_machine_guns', '0')
+        # # dont allow grenades or any utilities
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'bot_allow_pistols', '1')
+        # # dont allow grenades or any utilities
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'bot_allow_rifles', '1')
+        # # dont allow grenades or any utilities
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'bot_allow_snipers', '0')
+        # # dont allow grenades or any utilities
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'bot_allow_shotguns', '0')
+        # # dont allow grenades or any utilities
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'bot_allow_sub_machine_guns', '0')
         # dont allow grenades or any utilities
-        self.csgo_type_command(
-            self.keyboard_controller, 'bot_allow_pistols', '1')
-        # dont allow grenades or any utilities
-        self.csgo_type_command(
-            self.keyboard_controller, 'bot_allow_rifles', '1')
-        # dont allow grenades or any utilities
-        self.csgo_type_command(
-            self.keyboard_controller, 'bot_allow_snipers', '0')
-        # dont allow grenades or any utilities
-        self.csgo_type_command(
-            self.keyboard_controller, 'bot_allow_shotguns', '0')
-        # dont allow grenades or any utilities
-        self.csgo_type_command(
-            self.keyboard_controller, 'bot_allow_sub_machine_guns', '0')
-        # dont allow grenades or any utilities
-        self.csgo_type_command(
-            self.keyboard_controller, 'bot_allow_rogues', '0')
+        # self.csgo_type_command(
+            # self.keyboard_controller, 'bot_allow_rogues', '0')
 
         # self.csgo_type_command(self.keyboard_controller, 'notarget') # bot ignores player
         # self.csgo_type_command(self.keyboard_controller, 'mp_random_spawn', '3') # random spawn for enemy bot, not agent
@@ -300,10 +305,12 @@ class GameServer:
         self.keyboard_controller.release('`')
 
         # first give the player the bomb
-        self.csgo_type_command(
-            self.keyboard_controller, 'mp_give_player_c4', '1')  # Give T bomb
+        # self.csgo_type_command(
+            # self.keyboard_controller, 'mp_give_player_c4', '1')  # Give T bomb
 
         # then we spawn the enemy, but first we freeze bot first
+        self.csgo_type_command(
+            self.keyboard_controller, 'endround')  # 1 bot
         self.csgo_type_command(
             self.keyboard_controller, 'bot_stop', '1')  # 1 bot
         # self.csgo_type_command(
@@ -345,7 +352,7 @@ class GameServer:
 
         # initialise bomb plant
         self.mouse_controller.press(Button.left)
-        time.sleep(4)
+        time.sleep(4.5)
         self.mouse_controller.release(Button.left)
 
 
