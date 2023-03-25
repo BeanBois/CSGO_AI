@@ -19,12 +19,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-<<<<<<< HEAD
 RADAR_RANGE = (20,75,285,330)
-=======
-# RADAR_RANGE = (10,65,145,200)
-RADAR_RANGE = (20, 75, 285, 330)
->>>>>>> 3ad95ab (src1 fixes)
 SCREEN_WIDTH,SCREEN_HEIGHT = (1920, 1080)
 class EnemyRadarDetector:
     
@@ -75,13 +70,9 @@ class EnemyScreenDetector:
         self.stride = int(self.model.stride.max())
         self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
         self.held_image = None
-<<<<<<< HEAD
         self.timer = 0
-        self.enemy_screen_coords = {}
     
-=======
         self.enemy_screen_coords = {'body' : (None, None), 'head' : (None, None)}
->>>>>>> 3ad95ab (src1 fixes)
     
     def get_enemy_coords(self):
         if self.enemy_screen_coords is None:
@@ -229,7 +220,7 @@ class EnemyDetectorServer:
         #then process the data from client, specifically
         #see if the enemy is present, and if so, get the coordinates of the enemy
         # data = json.dumps(data)
-        data = str(data)
+        data = json.dumps(data)
         s.sendto(data.encode('utf-8'), client)
     
     def start_enemy_detection_model():
