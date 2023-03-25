@@ -78,12 +78,12 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rol
             for t_rollout in range(nb_rollout_steps):
                 print("t_rollout: ", t_rollout)
                 # Predict next action.
-                action, q = agent.select_action(p_obs, p_goal)
+                action, q = agent.select_action(p_obs, p_goal), None
                 obs = env.get_current_observation()
-                
-                assert action.shape == env.action_space.shape
+                # assert action.shape == env.action_space.shape
                 # assert max_action.shape == action.shape
-                new_obs, new_p_obs, r, done, goal, p_goal = env.step(action)  # scale for execution in env (as far as DDPG is concerned, every action is in [-1, 1])
+                new_obs, new_p_obs, r, done, info = env.step(action)  # scale for execution in env (as far as DDPG is concerned, every action is in [-1, 1])
+                goal, p_goal = info['goal state'], info['partial goal state']
                 new_obs = env.get_current_observation()
 
                 t += 1
@@ -106,7 +106,7 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rol
                     epoch_episodes += 1
                     episodes += 1
 
-                    agent.reset()
+                    agent.reset(obs, p_obs, goal, p_goal)
                     obs, p_obs, reward, done, goal, p_goal = env.reset()
 
             # Train.

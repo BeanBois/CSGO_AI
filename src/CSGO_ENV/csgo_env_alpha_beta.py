@@ -124,13 +124,6 @@ class CSGO_Env_Utils:
     def generate_set_of_goals(site):
         #hand picked goals sadly
         B = [
-            # Tuple([-2157.99, 1814.03, 68.03]),
-            # Tuple([-1639.76, 1620.03, 66.41]),
-            # Tuple([-1394.03, 1978.68, 70.08]),
-            # Tuple([-1819.93, 2477.03, 94.81]),
-            # Tuple([-2084.75, 3117.96, 99.53]),
-            # Tuple([-1362.03, 2755.43, 82.11]),
-            # Tuple([-1271,41, 2481.42, 108.06]), 
             (-2157.99, 1814.03, 68.03),
             (-1639.76, 1620.03, 66.41),
             (-1394.03, 1978.68, 70.08),
@@ -150,9 +143,6 @@ class CSGO_Env_Utils:
         if site == 'BombsiteA':
             return A
         return B
-        
-    def get_enemy_spawn_points(self, bombsite_choice):
-        pass
         
 
 
@@ -851,66 +841,3 @@ class CSGO_Env(gym.Env):
             # generate all possible goal states
             # goal state is a tuple of (x, y, z, enemy_x, enemy_y, enemy_z)
             # goal state is the state that the a
-
-if __name__ == '__main__':
-    
-    
-    
-    ob_sp = Dict({
-            # 'obs_type': spaces.Discrete(2),  # 0 for partial, 1 for  complete
-            'enemy': Dict({
-                'position': Dict({
-                    # data['areaId'] map id, 10 char for buffer
-                    # 'areaId': spaces.Text(10),
-                    'location': CSGO_Env_Utils.location_domain(100, 0, 100, 0, 100, 0),
-                    'forward': CSGO_Env_Utils.forward(),
-                    # 'time_seen': spaces.Discrete(TIME_STEPS),
-                    'time_seen': spaces.Box(low=0, high=TIME_STEPS, shape=(1,), dtype=np.int32)
-                }),
-                'enemy_screen_coords':  Box(low=np.array([0, 0]), high=np.array([1920, 1080]), dtype=np.int32),
-                'health': spaces.Box(low=0, high=100, shape=(1,), dtype=np.int32),
-                # 'health': spaces.Discrete(100),
-            }),
-            'agent': Dict({
-                'position': Dict({
-                    # data['areaId'] map id, 10 char for buffer
-                    # 'areaId': spaces.Text(10),
-                    'location': CSGO_Env_Utils.location_domain(100, 0, 100, 0, 100, 0),
-                    'forward': CSGO_Env_Utils.forward(),
-                }),
-                'agent_gun': spaces.Discrete(1),  # fixed
-                # 'agent_bullets': spaces.Discrete(30),  # fixed
-                'agent_bullets': spaces.Box(low=0,high=30,dtype=np.int32,shape=(1,),),  # fixed
-                'health': spaces.Box(low=0, high=100, shape=(1,), dtype=np.int32),
-                # 'health':  spaces.Discrete(100),
-            }),
-            'bomb_location': Dict({
-                # data['areaId'] map id, 10 char for buffer
-                # 'areaId': spaces.Text(10),
-                'location': CSGO_Env_Utils.location_domain(100, 0, 100, 0, 100, 0),
-            }),
-            # fixed, 0 for not defusing, 1 for defusing
-            # 'bomb_defusing': Tuple([spaces.Discrete(2), spaces.Discrete(TIME_STEPS)]),
-            # 'bomb_defusing': Tuple([spaces.Discrete(2), spaces.Box(low=0, high=TIME_STEPS, shape=(1,), dtype=np.int32)]),
-            'bomb_defusing': Tuple([spaces.Box(low=0, high=2, shape=(1,), dtype=np.int32), spaces.Box(low=0, high=TIME_STEPS, shape=(1,), dtype=np.int32)]),
-            # 'current_time': spaces.Discrete(TIME_STEPS),
-            'current_time': spaces.Box(low=0, high=TIME_STEPS, shape=(1,), dtype=np.int32),
-            # 0 for ongoing, 1 for agent win, 2 for enemy win
-            # 'winner': spaces.Discrete(3),
-            'winner': spaces.Box(low=0, high=3, shape=(1,), dtype=np.int32),
-            
-        })
-    loc_sp =Dict({
-                    # data['areaId'] map id, 10 char for buffer
-                    # 'areaId': spaces.Text(10),
-                    'location': CSGO_Env_Utils.location_domain(100, 0, 100, 0, 100, 0),
-                    'forward': CSGO_Env_Utils.forward(),
-                    'time_seen': spaces.Discrete(400),
-                })
-    loc_sp_2 = CSGO_Env_Utils.location_domain(100, 0, 100, 0, 100, 0)
-    forw_sp = CSGO_Env_Utils.forward()
-    loc = Tuple([spaces.Discrete(2), spaces.Box(low=0, high=TIME_STEPS, shape=(1,), dtype=np.int32)])
-    print(flatdim(ob_sp))
-    print(flatdim(loc_sp_2))
-    print(flatdim(forw_sp))
-    print(flatdim(loc))

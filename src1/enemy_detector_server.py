@@ -13,6 +13,7 @@ import torch
 import win32gui
 import win32con
 
+import json
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
@@ -250,7 +251,7 @@ class EnemyDetectorServer:
             #then process the data from client, specifically
             #see if the enemy is present, and if so, get the coordinates of the enemy
             # data = json.dumps(data)
-            data = str(data)
+            data = json.dumps(data)
             s.sendto(data.encode('utf-8'), client)
         
         # s.close()
