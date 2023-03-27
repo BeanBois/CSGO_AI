@@ -49,7 +49,9 @@ class GameServer:
             action = [int(i) for i in data['action'].split(',')]
             if not done:
                 self._apply_action(action)
-        # s.send("done".encode('utf-8'), client)
+        
+        response = "done"
+        s.sendto(response.encode('utf-8'), client)
         print('action applied')
         return
 
@@ -63,29 +65,34 @@ class GameServer:
         # enemy_screen_coords = self._obs['enemy_coords_on_screen']
         cursor_location = None
         cursor_location = ENEMY_SCREEN_DETECTOR.get_enemy_coords()
+        print(cursor_location)
 
-        if action[8] == 1 and action[7] == 0:
-            self.mouse_controller.move(5, 0)
-        if action[7] == 1 and action[8] == 0:
-            self.mouse_controller.move(-5, 0)
-    
+        if action[8] == 1:
+            self.mouse_controller.move(10, 0)
+        if action[7] == 1:
+            self.mouse_controller.move(10, 0)
+
         # if enemy_screen_coords['body'] is not None:
         #     cursor_location = enemy_screen_coords['body']
         # elif enemy_screen_coords['head'] is not None:
         #     cursor_location = enemy_screen_coords['head']
         if action[0] == 0:
             if action[5] == 0 and action[6] == 0:
-                movement_button = Key.w
+                movement_button = 'w'
             elif action[5] == 1 and action[6] == 0:
-                movement_button = Key.a
+                movement_button = 'a'
             elif action[5] == 0 and action[6] == 1:
-                movement_button = Key.s
+                movement_button = 's'
             elif action[5] == 1 and action[6] == 1:
-                movement_button = Key.d
+                movement_button = 'd'
 
         if movement_button is not None:
-            list_of_keys = [Key.w, Key.a, Key.s, Key.d] - [movement_button]
-            self.keyboard_controller.release(*list_of_keys)
+            # list_of_keys = ['w', 'a', 's', 'd'] - [movement_button]
+            list_of_keys = ['w', 'a', 's', 'd'].remove(movement_button)
+            if list_of_keys is not None:
+                for key in list_of_keys:
+                    self.keyboard_controller.release(key)
+            # self.keyboard_controller.release(*list_of_keys)
             if shift_pressed and ctrl_pressed and spacebar_pressed:
                 with self.keyboard_controller.pressed(Key.shift, Key.ctrl, Key.space):
                     self.keyboard_controller.press(movement_button)
@@ -102,26 +109,38 @@ class GameServer:
                 with self.keyboard_controller.pressed(Key.ctrl, Key.space):
                     self.keyboard_controller.press(movement_button)
             elif shift_pressed:
-                self.keyboard_controller.release(Key.ctrl, Key.space)
+                self.keyboard_controller.release(Key.space)
+                self.keyboard_controller.release(Key.ctrl)
                 with self.keyboard_controller.pressed(Key.shift):
                     self.keyboard_controller.press(movement_button)
             elif ctrl_pressed:
-                self.keyboard_controller.release(Key.shift, Key.space)
+                self.keyboard_controller.release(Key.space)
+                self.keyboard_controller.release(Key.shift)
                 with self.keyboard_controller.pressed(Key.ctrl):
                     self.keyboard_controller.press(movement_button)
             elif spacebar_pressed:
-                self.keyboard_controller.release(Key.shift, Key.ctrl)
+                self.keyboard_controller.release(Key.ctrl)
+                self.keyboard_controller.release(Key.shift)
                 with self.keyboard_controller.pressed(Key.space):
                     self.keyboard_controller.press(movement_button)
             else:
-                list_of_keys = [Key.w, Key.a, Key.s, Key.d] - [movement_button]
-                self.keyboard_controller.release(
-                    Key.shift, Key.ctrl, Key.space, *list_of_keys)
+                list_of_keys = ['w', 'a', 's', 'd'].remove(movement_button)
+                if list_of_keys is not None:
+                    for key in list_of_keys:
+                        self.keyboard_controller.release(key)
+                self.keyboard_controller.release(Key.shift)
+                self.keyboard_controller.release(Key.ctrl)
+                self.keyboard_controller.release(Key.space)
+                # list_of_keys = ['w', 'a', 's', 'd'] - [movement_button]
+                # self.keyboard_controller.release(
+                    # Key.shift, Key.ctrl, Key.space, *list_of_keys)
                 self.keyboard_controller.press(movement_button)
 
         else:
-            list_of_keys = [Key.w, Key.a, Key.s, Key.d]
-            self.keyboard_controller.release(*list_of_keys)
+            list_of_keys = ['w', 'a', 's', 'd']
+            for key in list_of_keys:
+                self.keyboard_controller.release(key)
+            # self.keyboard_controller.release(*list_of_keys)
             if shift_pressed:
                 self.keyboard_controller.press(Key.shift)
             else:
@@ -136,10 +155,12 @@ class GameServer:
                 self.keyboard_controller.release(Key.space)
 
         if left_click:
-            if cursor_location is not None:
-                curr_cursor_position = self.mouse_controller.position
-                self.mouse_controller.move(
-                    cursor_location[0] - curr_cursor_position[0], cursor_location[1] - curr_cursor_position[1])
+            # if cursor_location is not None or cursor_location is not (None,None):
+            if cursor_location[0] is not None and cursor_location[1] is not None:
+                self.mouse_controller.position = cursor_location
+                # curr_cursor_position = self.mouse_controller.position
+                # self.mouse_controller.move(
+                #     cursor_location[0] - curr_cursor_position[0], cursor_location[1] - curr_cursor_position[1])
             self.mouse_controller.click(Button.left)
             self.mouse_controller.release(Button.left)
 
@@ -149,6 +170,7 @@ class GameServer:
     # DONE, TODO: Check
     
     def configure_game(self):
+        self.reset_controllers()
         # open terminal
         self.keyboard_controller.press('`')
         time.sleep(0.1)
@@ -283,7 +305,7 @@ class GameServer:
             ]
     # server):
     def start_game(self, bombsite_choice):
-
+        self.reset_controllers()
         # choose bombsite
         bombsite = self.map_data[self.map_data['areaName'] == bombsite_choice].sample()
         # enemy_spawn = self.map_data[self.map_data['areaName']
@@ -399,6 +421,16 @@ class GameServer:
         self.keyboard_controller.release(Key.enter)
         time.sleep(0.5)
         print('command sent')
+
+    def reset_controllers(self):
+        if self.keyboard_controller.shift_pressed:
+            self.keyboard_controller.release(Key.shift)
+        if self.keyboard_controller.ctrl_pressed:
+            self.keyboard_controller.release(Key.ctrl)
+        # if self.mouse_controller.left_pressed:
+        #     self.mouse_controller.release(Button.left)
+        # if self.mouse_controller.right_pressed:
+        #     self.mouse_controller.release(Button.right)
 
 
 if __name__ == '__main__':
