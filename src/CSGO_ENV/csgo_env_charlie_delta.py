@@ -318,56 +318,67 @@ class Goal:
 class CSGO_Env_Utils:
     
     def match_result_to_array(match_result):
-        arr = np.zeros(3)
-        arr[match_result] = 1
-        return arr
+        # arr = np.zeros(3)
+        # arr[match_result] = 1
+        # return arr
+        return np.array(match_result)
     
     def bool_to_array(bool):
-        arr = np.zeros(2)
-        if bool is None:
-            return arr
-        arr[bool] = 1
-        return arr
+        # arr = np.zeros(2)
+        # if bool is None:
+        #     return arr
+        # arr[bool] = 1
+        # return arr
+        return np.array(bool)
     
     def bullet_to_array(bullet):
-        bullet = bullet.clip(0, 30)
-        arr = np.zeros(30)
-        arr[bullet] = 1
-        return arr
+        # bullet = bullet.clip(0, 30)
+        # arr = np.zeros(30)
+        # arr[bullet] = 1
+        # return arr
+        return np.array(bullet)
     
     def forward_to_array(forward, STEP_SIZE = 0.25):
-        arr = np.zeros((int(2/STEP_SIZE), int(2/STEP_SIZE), int(2/STEP_SIZE)))
-        if forward is None:
-            arr.flatten()
-            return arr
-        forward = np.array(forward, dtype=np.float32)//STEP_SIZE + 1//STEP_SIZE
-        forward = np.array(forward, dtype=np.int32)
-        arr[forward[0], forward[1], forward[2]] = 1
+        # arr = np.zeros((int(2/STEP_SIZE), int(2/STEP_SIZE), int(2/STEP_SIZE)))
+        # if forward is None:
+        #     arr.flatten()
+        #     return arr
+        # forward = np.array(forward, dtype=np.float32)//STEP_SIZE + 1//STEP_SIZE
+        # forward = np.array(forward, dtype=np.int32)
+        # arr[forward[0], forward[1], forward[2]] = 1
+        # arr.flatten()
+        # return arr
+        arr = np.array([np.nan, np.nan, np.nan])
+        if forward is not None:
+            arr = np.array(forward, dtype=np.float32)
         arr.flatten()
         return arr
 
     def health_to_array(health):
-        arr = np.zeros(100)
-        arr[health] = 1
-        return arr
+        # arr = np.zeros(100)
+        # arr[health] = 1
+        # return arr
+        return np.array(health)
     
     def time_to_array(time):
-        arr = np.zeros(TIME_STEPS)
-        if time is not None:
-            arr[time] = 1
-        return arr
+        # arr = np.zeros(TIME_STEPS)
+        # if time is not None:
+            # arr[time] = 1
+        # return arr
+        return np.array(time)
     
     def location_to_array(location, domain, DISCRETE_STEP_SIZE = 50):
-        max_x = domain['max_x']
-        min_x = domain['min_x']
-        max_y = domain['max_y']
-        min_y = domain['min_y']
-        max_z = domain['max_z']
-        min_z = domain['min_z']
-        arr = np.zeros(floor((max_x - min_x) / DISCRETE_STEP_SIZE), floor((max_y - min_y) / DISCRETE_STEP_SIZE), floor((max_z - min_z) / DISCRETE_STEP_SIZE))
-        location = np.array(location, dtype=np.int32)//DISCRETE_STEP_SIZE
+        # max_x = domain['max_x']
+        # min_x = domain['min_x']
+        # max_y = domain['max_y']
+        # min_y = domain['min_y']
+        # max_z = domain['max_z']
+        # min_z = domain['min_z']
+        # arr = np.zeros(floor((max_x - min_x) / DISCRETE_STEP_SIZE), floor((max_y - min_y) / DISCRETE_STEP_SIZE), floor((max_z - min_z) / DISCRETE_STEP_SIZE))
+        # location = np.array(location, dtype=np.int32)//DISCRETE_STEP_SIZE
+        arr = np.array([np.nan, np.nan, np.nan])
         if location is not None:
-            arr[location[0], location[1], location[2]] = 1 
+            arr = np.array([location[0], location[1], location[2]], dtype=np.int32) 
         arr.flatten()
         return arr
     
@@ -807,10 +818,11 @@ class CSGO_Env(gym.Env):
     # if action dont explicitly state to press a key, we release it
     def _apply_action(self, action, done):
         # convert action to binary form
-        binary_action = action.convert_to_binary_form()
-        
-        GameClient.send_action(binary_action, done)
-        time.sleep(self.ACTION_TIME)
+        if action is not None:
+            binary_action = action.convert_to_binary_form()
+            
+            GameClient.send_action(binary_action, done)
+            time.sleep(self.ACTION_TIME)
     # TODO: Change datatype
     # DONE, TODO: Check
 

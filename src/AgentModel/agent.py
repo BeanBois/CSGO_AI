@@ -15,17 +15,6 @@ from gym.spaces.utils import flatdim
 
 CONFIDENCE = 0.5
 
-def flatten_location(location,DIMENSIONS):
-    x_min, x_max, y_min, y_max, z_min, z_max = DIMENSIONS
-    x_axis = np.zeros(x_max-x_min)
-    y_axis = np.zeros(y_max-y_min)
-    z_axis = np.zeros(z_max-z_min)
-    if location is not None:
-        x_axis[location[0]-x_min] = 1
-        y_axis[location[1]-y_min] = 1
-        z_axis[location[2]-z_min] = 1
-    return cartesian_product(x_axis,y_axis,z_axis)
-
 def flatten_p_obs(obs):
     enemy_pos = obs['enemy']['position'] 
     enemy_loc = enemy_pos['location'] if enemy_pos['location'] is not None else np.array([np.nan,np.nan,np.nan])
@@ -87,25 +76,19 @@ def flatten_goal(goal):
 class Action:
     #3 forms
     #super compact form : a number
-    #compact form : number represented as a binary list
-    #loose form : array of zeros, where the index of the action is 1
+    #binary form : number represented as a binary list
     
     def __init__(self, action, action_dim, action_domain_size):
         self.action_tag = self.process_loose_action(action)
         self.action_dim = action_dim
         self.action_domain_size = action_domain_size
     
-    def process_loose_action(self, action):
+    def process_binary_action(self, action):
         acc = 0
         for i in len(action):
             acc += action[i] * (2**i)
         return acc
-    #loose form
-    def convert_to_loose_form(self):
-        arr = np.zeros(self.action_domain_size)
-        if self.action_tag is not None:
-           arr[self.action_tag] = 1
-        return arr      
+    
     #compact form   
     def convert_to_binary_form(self):
         part_arr = [int(x) for x in bin(self.action_tag)[2:]]
