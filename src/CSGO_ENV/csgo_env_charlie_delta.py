@@ -8,6 +8,8 @@ import time
 from enemy_detection_client import SCREEN_WIDTH, SCREEN_HEIGHT
 from enemy_detection_client import EnemyDetectorClient
 from GameInterface.game_interface_client import GameClient
+import math
+floor = math.floor
 
 from gsi_client import client
 from awpy.data import NAV_CSV
@@ -20,15 +22,17 @@ import time
 from gym.spaces.utils import flatdim
 
 TRAINING = True
-
 TIME_STEPS = 400
 
 
-#class for observation
-#this class maintains the observation data consistency between the agent(DDPG algorithm) and the environment
-#This is so as we want to keep the environment lightweight by compressing data
-#but give agent enough information to make decisions, which is decompress data represented in array
-class CompleteObservation():
+
+class Observation:
+    map_domain = None
+    def set_map_domain(map_domain):
+        Observation.map_domain = map_domain
+
+
+class CompleteObservation(Observation):
     
     def __init__(self):
         self.agent_location = None #location of agent
@@ -48,67 +52,325 @@ class CompleteObservation():
         
         self.match_result = None
         self.bomb_location = None
+        self.bomb_defusing = None
+        self.bomb_info_time = None 
 
-    # def make_observation(self, information):
-    #     agent = information["player"]
-    #     phase_cd = information["phase_countdowns"]
-    #     round_info = information["round"]
-    #     match_result = 0
-    #     if "bomb" in round_info.keys():
-    #         bomb_state = round_info['bomb']
-    #         if bomb_state == 'exploded':
-    #             match_result = 1 # bomb exploded, Terrorist win
-    #         elif bomb_state == 'defused':
-    #             match_result = 2 # bomb defused, Counter Terrorist win
-    #     enemy = {}
-    #     # players = GSI_SERVER_TRAINING.get_info("allplayers")#returns dictionary of bombstate
-    #     players = information["allplayers"]  # returns dictionary of bombstate
+    def update_observation(self, information):
+        agent = information["player"]
+        phase_cd = information["phase_countdowns"]
+        round_info = information["round"]
+        match_result = 0
+        agent_health = agent['state']['health']
+        enemy = {}
+        players = information["allplayers"]  # returns dictionary of bombstate
         
-    #     for player in players:
-    #         if players[player]['name'] != agent['name']:
-    #             enemy = players[player]
-    #             break
-    #     # bomb = GSI_SERVER_TRAINING.get_info("bomb")
-    #     bomb = information["bomb"]
-    #     # match_result = information['bomb']['state']
-    #     agent_weapon = [agent['weapons'][weapon] for weapon in agent['weapons']
-    #                     if agent['weapons'][weapon]['state'] == 'active'][0]
-    #     enemy_screen_coord = information['enemy_screen_coords'].get(
-    #         'head', None)
-    #     if enemy_screen_coord is None:
-    #         enemy_screen_coord = information['enemy_screen_coords'].get(
-    #             'body', None)
+        for player in players:
+            if players[player]['name'] != agent['name']:
+                enemy = players[player]
+                break
+        enemy_health = enemy['state']['health']
+        if "bomb" in round_info.keys():
+            bomb_state = round_info['bomb']
+            if bomb_state == 'exploded' or enemy_health <= 0:
+                match_result = 1 # bomb exploded or enemy killed, Terrorist win
+            elif bomb_state == 'defused':
+                #we do not care if agent dies as bomb can still explode after agent death
+                match_result = 2 # bomb defused, Counter Terrorist win
 
-    #     self.enemy_location = np.array(enemy['position'][].split(','), dtype=np.float32),
-    #                 'forward': np.array(enemy['forward'].split(','), dtype=np.float32),
-    #                 'time_seen': int(float(phase_cd['phase_ends_in'])),
-    #             },
-    #             'enemy_screen_coords': enemy_screen_coord if enemy_screen_coord != (None, None) else (None, None),
-    #             'health': int(enemy['state']['health']),
-    #         },
-    #         'agent': {
-    #             'position': {
-    #                 # 'areaId': None,
-    #                 'location': np.array(agent['position'].split(','), dtype=np.float32),
-    #                 'forward': np.array(agent['forward'].split(','), dtype=np.float32),
-    #             },
-    #             # 'agent_gun': agent_weapon['name'],
-    #             'agent_gun': 1,
-    #             'agent_bullets': int(agent_weapon['ammo_clip']) if "ammo_clip" in agent_weapon.keys() else 0,
-    #             'health': int(agent['state']['health']),
-    #         },
-    #         # 'bomb location' : np.fromstring(bomb['position']),
-    #         'bomb_location': {
-    #             # 'areaId': None,
-    #             'location': np.array(bomb['position'].split(','), dtype=np.float32),
-    #         },
-    #         'bomb_defusing': (1 if bomb['state'] == 'defusing' else 0,  int(float(phase_cd['phase_ends_in']))),
-    #         'current_time': int(float(phase_cd['phase_ends_in'])),
-    #         'winner': match_result
+        # bomb = GSI_SERVER_TRAINING.get_info("bomb")
+        bomb = information["bomb"]
+        agent_weapon = [agent['weapons'][weapon] for weapon in agent['weapons']
+                        if agent['weapons'][weapon]['state'] == 'active'][0]
+        enemy_on_radar = information['enemy_on_radar']
+        enemy_screen_coord = information['enemy_screen_coords'].get(
+            'head', None)
+        if enemy_screen_coord is None:
+            enemy_screen_coord = information['enemy_screen_coords'].get(
+                'body', None)
+
+        self.enemy_location = np.array(enemy['position']['location'].split(','), dtype=np.float32)
+        self.enemy_forward = np.array(enemy['forward'].split(','), dtype=np.float32)
+        self.enemy_last_seen = int(float(phase_cd['phase_ends_in']))
+        self.enemy_on_screen_now = 1 if enemy_screen_coord is not None else 0
+        self.enemy_on_radar_now = 1 if enemy_on_radar == 'visible' else 0
+        self.enemy_health = int(enemy['state']['health'])
+        self.agent_location = np.array(agent['position'].split(','), dtype=np.float32)
+        self.agent_forward = np.array(agent['forward'].split(','), dtype=np.float32)
+        self.agent_health = int(agent['state']['health'])
+        self.agent_bullet = int(agent_weapon['ammo_clip']) if "ammo_clip" in agent_weapon.keys() else 0
+        self.bomb_location = np.array(bomb['position'].split(','), dtype=np.float32)
+        self.bomb_defusing = 1 if bomb['state'] == 'defusing' else 0
+        self.bomb_info_time =  int(float(phase_cd['phase_ends_in']))
+        self.time = int(float(phase_cd['phase_ends_in']))
+        self.match_result = match_result
+    #converts the observation to an array
+    def convert_to_array(self):
+        
+        #agent info first
+        agent_location = CSGO_Env_Utils.location_to_array(self.agent_location, Observation.map_domain)
+        agent_forward = CSGO_Env_Utils.forward_to_array(self.agent_forward)
+        agent_health = CSGO_Env_Utils.health_to_array(self.agent_health)
+        time = CSGO_Env_Utils.time_to_array(self.time)
+        
+        #enemy info
+        enemy_location = CSGO_Env_Utils.location_to_array(self.enemy_location, Observation.map_domain)
+        enemy_forward = CSGO_Env_Utils.forward_to_array(self.enemy_forward)
+        enemy_health = CSGO_Env_Utils.health_to_array(self.enemy_health)
+        enemy_last_seen = CSGO_Env_Utils.time_to_array(self.enemy_last_seen)
+        enemy_on_screen_now = CSGO_Env_Utils.bool_to_array(self.enemy_on_screen_now)
+        enemy_on_radarr_now = CSGO_Env_Utils.bool_to_array(self.enemy_on_radar_now)
+        
+        
+        #bomb info
+        bomb_location = CSGO_Env_Utils.location_to_array(self.bomb_location, Observation.map_domain)
+        bomb_defusing = CSGO_Env_Utils.bool_to_array(self.bomb_defusing)
+        bomb_info_time = CSGO_Env_Utils.time_to_array(self.bomb_info_time)
+        
+        
+        return np.concatenate((agent_location, agent_forward, agent_health, time, enemy_location, enemy_forward, enemy_health, enemy_last_seen, enemy_on_screen_now, enemy_on_radarr_now, bomb_location, bomb_defusing, bomb_info_time))
+    
+class PartialObservation(Observation):
+    
+    def __init__(self):
+        self.agent_location = None #location of agent
+        self.agent_forward = None #forward of agent
+        self.agent_health = None #health of agent
+        self.time = None #time of the game
+        self.agent_bullet = None #number of bullets in the agent's magazine
+
+        self.enemy_location = None #location of enemy
+        self.enemy_forward = None #forward of enemy
+        self.enemy_health = None #health of enemy
+        
+        self.enemy_last_seen = None #last seen location of enemy
+        self.enemy_on_screen_now = None #is enemy on screen now
+        self.enemy_on_radar_now = None #is enemy on radar now
+        
+        
+        self.match_result = None
+        self.bomb_location = None
+        self.bomb_defusing = None
+        self.bomb_info_time = None
+        
+
+    def update_observation(self, information):
+        # if enemy not on bomb, we know bomb not defusing
+        # if see bomb on screen, agent will know whether bomb is defused
+
+        # Get player information first
+        agent = information["player"]
+        agent_weapon = [agent['weapons'][weapon] for weapon in agent['weapons']
+                        if agent['weapons'][weapon]['state'] == 'active'][0]
+        # get time
+        phase_cd = information["phase_countdowns"]
+
+        # get round information
+        round_info = information["round"]
+        match_result = 0
+        if "bomb" in round_info.keys():
+            bomb_state = round_info['bomb']
+
+            if bomb_state == 'exploded':
+                match_result = 1 # bomb exploded, Terrorist win
+                
+            elif bomb_state == 'defused':
+                match_result = 2 # bomb defused or agent killed, Counter Terrorist win
+        
+        # get prev obv of enemy
+        enemy_loc = self.enemy_location if self.enemy_location is not None else None
+        enemy_forw = self.enemy_forward if self.enemy_forward is not None else None
+        enemy_health = self.enemy_health if self.enemy_health is not None else 100
+        time_of_info_enemy = self.enemy_last_seen if self.enemy_last_seen is not None else None
+
+        # get prev obv of bomb
+        bomb_state = self.bomb_defusing if self.bomb_defusing is not None else 0
+        time_of_info_bomb = self.bomb_info_time if self.bomb_info_time is not None else None
+
+        # check if we have seen the bomb
+        # here we area also 'simulating' the ability of the agent to be able to
+        # distinguish whether the bomb is defusing or not with just the image of the bomb
+        # This is not an easy task since the vision cues for defusing is not very clear
+        # To simulate this ability, once we have seen the bomb on the screen, we will
+        # stream the state of the bomb from the game server
+        curr_bomb_state = information['bomb']['state']
 
 
+        # Decaying information, we set a expiry time for the information we collected
+        # now if our time_of_info_bomb is way too old <5s, we delete the information as irrelevant
+        if time_of_info_bomb is None or int(float(phase_cd['phase_ends_in'])) - time_of_info_bomb > 5:
+            bomb_state = None
+            time_of_info_bomb = int(float(phase_cd['phase_ends_in']))
+
+        # same goes for time_of_info_enemy
+        if time_of_info_enemy is None or int(float(phase_cd['phase_ends_in'])) - time_of_info_enemy > 5:
+            enemy = None
+            enemy_pos = None
+            enemy_loc = None
+            enemy_forw = None
+            time_of_info_enemy = int(float(phase_cd['phase_ends_in']))
+
+        # now we see if we have 'seen' enemy
+        if information['allplayers'] is not None:
+            # returns dictionary of bombstate
+            players = information["allplayers"]
+            for player in players:
+                if players[player]['name'] != agent['name']:
+                    enemy = players[player]
+                    break
+
+            enemy_loc = np.array(
+                enemy['position'].split(','), dtype=np.float32)
+            enemy_forw = np.array(
+                enemy['forward'].split(','), dtype=np.float32)
+            enemy_health = enemy['state']['health']
+            time_of_info_enemy = int(float(phase_cd['phase_ends_in']))
+            bomb_loc = np.array(
+                information["bomb"]['position'].split(','), dtype=np.float32)
+
+           # check if enemy location is far away from bomb location
+           # if yes then we know that enemy is not defusing the bomb
+            if(sum((enemy_loc - bomb_loc)**2) > 30):
+                bomb_state = 0
+                time_of_info_bomb = int(float(phase_cd['phase_ends_in']))
+
+        # now check if enemy tried to defuse the bomb
+        # done by comparing prev state of bomb and current state of bomb
+        if bomb_state != 1 and curr_bomb_state == 1:
+            bomb_state = 1
+            time_of_info_bomb = int(float(phase_cd['phase_ends_in']))
+
+        # update time of no information about bomb and enemy, if
+        # there is no information about bomb and enemy
+        if bomb_state is None:
+            time_of_info_bomb = int(float(phase_cd['phase_ends_in']))
+
+        if enemy is None:
+            time_of_info_enemy = int(float(phase_cd['phase_ends_in']))
+
+        bomb = information["bomb"]
+        enemy_on_radar = information['enemy_on_radar']
+        enemy_screen_coord = information['enemy_screen_coords'].get(
+            'head', None)
+        if enemy_screen_coord is None:
+            enemy_screen_coord = information['enemy_screen_coords'].get(
+                'body', None)
+        
+        enemy_health = enemy
+        self.enemy_location = enemy_loc
+        self.enemy_forward = enemy_forw
+        self.enemy_health = enemy_health
+        self.enemy_last_seen = time_of_info_enemy
+        self.enemy_on_screen_now = 1 if enemy_screen_coord is not None else 0
+        self.enemy_on_radar_now = 1 if enemy_on_radar else 0
+        self.agent_location = np.array(agent['position'].split(','), dtype=np.float32)
+        self.agent_forward = np.array(agent['forward'].split(','), dtype=np.float32)
+        self.agent_health = int(agent['state']['health'])
+        self.agent_bullet = int(agent_weapon['ammo_clip']) if "ammo_clip" in agent_weapon.keys() else 0
+        self.bomb_location = np.array(bomb['position'].split(','), dtype=np.float32)
+        self.bomb_defusing = bomb_state
+        self.bomb_info_time =  time_of_info_bomb
+        self.time = int(float(phase_cd['phase_ends_in']))
+        self.match_result = match_result
+        
+    #converts the observation to an array
+    def convert_to_array(self):
+        
+        #agent info first
+        agent_location = CSGO_Env_Utils.location_to_array(self.agent_location, Observation.map_domain)
+        agent_forward = CSGO_Env_Utils.forward_to_array(self.agent_forward)
+        agent_health = CSGO_Env_Utils.health_to_array(self.agent_health)
+        time = CSGO_Env_Utils.time_to_array(self.time)
+        
+        #enemy info
+        enemy_location = CSGO_Env_Utils.location_to_array(self.enemy_location, Observation.map_domain)
+        enemy_forward = CSGO_Env_Utils.forward_to_array(self.enemy_forward)
+        enemy_health = CSGO_Env_Utils.health_to_array(self.enemy_health)
+        enemy_last_seen = CSGO_Env_Utils.time_to_array(self.enemy_last_seen)
+        enemy_on_screen_now = CSGO_Env_Utils.bool_to_array(self.enemy_on_screen_now)
+        enemy_on_radarr_now = CSGO_Env_Utils.bool_to_array(self.enemy_on_radar_now)
+        
+        
+        #bomb info
+        bomb_location = CSGO_Env_Utils.location_to_array(self.bomb_location, Observation.map_domain)
+        bomb_defusing = CSGO_Env_Utils.bool_to_array(self.bomb_defusing)
+        bomb_info_time = CSGO_Env_Utils.time_to_array(self.bomb_info_time)
+        
+        
+        return np.concatenate((agent_location, agent_forward, agent_health, time, enemy_location, enemy_forward, enemy_health, enemy_last_seen, enemy_on_screen_now, enemy_on_radarr_now, bomb_location, bomb_defusing, bomb_info_time))
+
+class Goal:
+    
+    def __init__(self):
+        self.goal_index = 0
+        self.goal = None
+ 
+    def update_goal(self, goal_index, goal):
+        self.goal_index = goal_index
+        self.goal = goal
+    
+    def convert_to_array(self,goal_size):
+        arr = np.zeros(goal_size)
+        arr[self.goal_index] = 1
+        return arr
+    
+         
+        
 class CSGO_Env_Utils:
+    
+    def match_result_to_array(match_result):
+        arr = np.zeros(3)
+        arr[match_result] = 1
+        return arr
+    
+    def bool_to_array(bool):
+        arr = np.zeros(2)
+        if bool is None:
+            return arr
+        arr[bool] = 1
+        return arr
+    
+    def bullet_to_array(bullet):
+        bullet = bullet.clip(0, 30)
+        arr = np.zeros(30)
+        arr[bullet] = 1
+        return arr
+    
+    def forward_to_array(forward, STEP_SIZE = 0.25):
+        arr = np.zeros((int(2/STEP_SIZE), int(2/STEP_SIZE), int(2/STEP_SIZE)))
+        if forward is None:
+            arr.flatten()
+            return arr
+        forward = np.array(forward, dtype=np.float32)//STEP_SIZE + 1//STEP_SIZE
+        forward = np.array(forward, dtype=np.int32)
+        arr[forward[0], forward[1], forward[2]] = 1
+        arr.flatten()
+        return arr
 
+    def health_to_array(health):
+        arr = np.zeros(100)
+        arr[health] = 1
+        return arr
+    
+    def time_to_array(time):
+        arr = np.zeros(TIME_STEPS)
+        if time is not None:
+            arr[time] = 1
+        return arr
+    
+    def location_to_array(location, domain, DISCRETE_STEP_SIZE = 50):
+        max_x = domain['max_x']
+        min_x = domain['min_x']
+        max_y = domain['max_y']
+        min_y = domain['min_y']
+        max_z = domain['max_z']
+        min_z = domain['min_z']
+        arr = np.zeros(floor((max_x - min_x) / DISCRETE_STEP_SIZE), floor((max_y - min_y) / DISCRETE_STEP_SIZE), floor((max_z - min_z) / DISCRETE_STEP_SIZE))
+        location = np.array(location, dtype=np.int32)//DISCRETE_STEP_SIZE
+        if location is not None:
+            arr[location[0], location[1], location[2]] = 1 
+        arr.flatten()
+        return arr
+    
     def location_domain(max_x, min_x, max_y, min_y, max_z, min_z):
         return Box(
             low=np.array([min_x, min_y, min_z]),
@@ -116,8 +378,9 @@ class CSGO_Env_Utils:
             dtype=np.int32,
             shape=(3,))
     
-    def location_domain_size(max_x, min_x, max_y, min_y, max_z, min_z):
-        return (max_x - min_x) * (max_y - min_y) * (max_z - min_z)
+    def location_domain_size(max_x, min_x, max_y, min_y, max_z, min_z, DISCRETE_STEP_SIZE = 50):
+        # return (max_x - min_x) * (max_y - min_y) * (max_z - min_z)
+        return floor((max_x - min_x) / DISCRETE_STEP_SIZE) * floor((max_y - min_y) / DISCRETE_STEP_SIZE) * floor((max_z - min_z) / DISCRETE_STEP_SIZE)
 
 
     def forward():
@@ -128,8 +391,8 @@ class CSGO_Env_Utils:
             dtype=np.float32
         )
 
-    def forward_domain_size():
-        return (200)**3
+    def forward_domain_size(STEP_SIZE = 0.25):
+        return floor(2/STEP_SIZE) * floor(2/STEP_SIZE) * floor(2/STEP_SIZE)
     
     
     def action_space_domain():
@@ -241,8 +504,7 @@ class CSGO_Env_Utils:
             return A
         return B
         
-
-
+        
 class CSGO_Env(gym.Env):
     MAP_NAME = 'de_dust2'
     MAP_DATA = NAV_CSV[NAV_CSV["mapName"] == MAP_NAME]
@@ -253,12 +515,12 @@ class CSGO_Env(gym.Env):
 
     def __init__(self):
         self.bombsite_choice = None
-        self._obs = None
-        self._part_obs = None
+        self._obs = CompleteObservation()
+        self._part_obs = PartialObservation()
         self._reward = 0
         self._set_of_goals = None
-        self._goal_state = None
-        self._partial_goal_state = None
+        self._goal_state = Goal()
+        self._partial_goal_state = Goal()
         self._time_of_goal_state = None
         self._init_para()
         # observation space can be abstractly thought of as a set of nodes
@@ -269,7 +531,7 @@ class CSGO_Env(gym.Env):
         self.observation_space = CSGO_Env_Utils.observation_space_domain(
             self.max_x, self.min_x, self.max_y, self.min_y, self.max_z, self.min_z, SCREEN_HEIGHT, SCREEN_WIDTH)
         self.action_space = CSGO_Env_Utils.action_space_domain()
-        self.goal_space = self._set_of_goals
+        self.goal_space = CSGO_Env_Utils.location_domain(self.max_x, self.min_x, self.max_y, self.min_y, self.max_z, self.min_z)
 
         self.action_space_size = CSGO_Env_Utils.action_space_domain_size()
         self.goal_space_size = len(self._set_of_goals)
@@ -284,9 +546,8 @@ class CSGO_Env(gym.Env):
             'min_z': self.min_z,
             'max_z': self.max_z,
         }
-        # CSGO_Env_Utils.start_game(
-        #     self.MAP_NAME, self.MAP_DATA, self.keyboard_controller, self.mouse_controller)
-
+        Observation.set_map_domain(self.map_domain)
+    
     def _init_para(self):
         self.bombsite_choice = random.choice(['BombsiteA', 'BombsiteB']) if self.bombsite_choice is None else self.bombsite_choice
         self.min_x, self.max_x = None, None
@@ -318,14 +579,14 @@ class CSGO_Env(gym.Env):
         # then init game
         GameClient.send_action("configure")
         # GameClient.send_action(f"start {bombsite_choice}")
-       
+  
 
     #(observation, reward, done, info)
     # each step corresponds to 0.1 seconds (OBSERVING_TIME or ACTION_TIME)
     def step(self, action):
         
 
-        # get round information
+        # get round information to if its the end of the round
         round_info = client.get_info("round")
         match_result = 0
         if "bomb" in round_info.keys():
@@ -336,15 +597,11 @@ class CSGO_Env(gym.Env):
                 
             elif bomb_state == 'defused':
                 match_result = 2 # bomb defused, Counter Terrorist win
-        # observing_thread_2 = th.Timer(CSGO_Env.OBSERVING_TIME, self._get_full_state, args = (lock,))
-        
-        # action_thread = th.Timer(CSGO_Env.ACTION_TIME,
-        #                          self._apply_action, args=(action, (match_result>0)))
 
         self._apply_action(action, (match_result>0))
 
     
-        #get state should be called after action is applied to get the next state
+        #collect information after action applied
         information = {}
         information['player'] = client.get_info("player")
         information['phase_countdowns'] = client.get_info("phase_countdowns")
@@ -366,32 +623,14 @@ class CSGO_Env(gym.Env):
                    # get current_state
         prev_observation = self._obs
         prev_part_observation = self._part_obs
-        # create threads
-        # observing_thread = th.Timer(
-        #     CSGO_Env.OBSERVING_TIME, self._get_state, args=(information))
+    
+        #get next state after action applied
         self._get_state(information)
 
-        # start observing
-        # observing_thread.start()
-
-        # apply action at the same time
-        # action_thread.start()
-
-        # create reward thread
-        # this is so to ensure that we calculate reward only after we have the next observation
-
-        # reward_thread = th.Thread(target=self._get_reward, args=(
-        #     prev_observation, prev_part_observation, action))
-
+        #get reward
         self._get_reward(prev_observation, prev_part_observation, action)
 
-        # #get next observation
-        # observing_thread_2.start()
 
-        # reward thread has to wait for observing thread, so we ensure all threads are properly ran through in the function
-        # self._obs records the latest _obs
-        # reward_thread.start()
-        # reward_thread.join()
         info = {'goal state' : self._goal_state,'partial goal state': self._partial_goal_state}
         print("step taken, variables are: ")
         print(f"observation: {self._obs}")
@@ -403,7 +642,7 @@ class CSGO_Env(gym.Env):
         return self._obs, self._part_obs, self._reward, self._is_done(), {'goal state' : self._goal_state,'partial goal state': self._partial_goal_state}
 
     def _is_done(self):
-        if self._obs is not None and self._obs['winner'] is not None and self._obs['winner'] != 0:
+        if self._obs.winner is not None and self._obs.winner != 0:
             return True
         return False
 
@@ -417,26 +656,15 @@ class CSGO_Env(gym.Env):
     def _get_state(self, information):
         with self.lock:
 
-            # process img
-            # img = information['img']
+            #get screen information
             enemy_information = EnemyDetectorClient.get_enemy_info()
 
-            # enemy_on_radar = ENEMY_RADAR_DETECTOR.scan_for_enemy(img)
             enemy_on_radar = enemy_information['enemy_on_screen'] 
             enemy_screen_coords = enemy_information['enemy_screen_coords']
-            # #now check if see enemy on screen
-            # if enemy_on_radar:
-                #now check if see enemy on screen
-                
-                #now we tackle this
-                # enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
-            # enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
             information['enemy_on_radar'] = enemy_on_radar
             information['enemy_screen_coords'] = enemy_screen_coords
             partial_information = information.copy()
 
-            # img no longer needed
-            # information.pop('img')
             self._get_full_state(information)
 
             # Making partial state
@@ -453,8 +681,8 @@ class CSGO_Env(gym.Env):
             # bomb location is always known by agent
             # if enemy tries to defuse bomb, agent will know
             # if not enemy_on_radar or not (information['bomb']['state'] == 'defusing' and self._obs['bomb defusing'][0] == 0):
-            if enemy_screen_coords is not None or not (information['bomb']['state'] == 'defusing' and self._obs['bomb_defusing'][0] == 0):
-                self._obs['enemy']['enemy_screen_coords'] = enemy_screen_coords
+            if enemy_screen_coords is not None or not (information['bomb']['state'] == 'defusing' and self._obs.bomb_defusing == 0):
+                # self._obs['enemy']['enemy_screen_coords'] = enemy_screen_coords
                 partial_information['allplayers'] = None
 
             self._get_partial_state(partial_information)
@@ -463,12 +691,12 @@ class CSGO_Env(gym.Env):
     def _get_full_state(self, information):
         # here we assume TRAINING is true
         with self.lock:
-            self._obs = self._make_complete_observation(information)
+            self._obs.update_observation(information)
 
     def _get_partial_state(self, information):
         # here we assume TRAINING is true
         with self.lock:
-            self._part_obs = self._make_partial_state(information)
+            self._part_obs.update_observation(information)
 
 # Reward function
     # TODO: adapt reward for partial state
@@ -480,7 +708,6 @@ class CSGO_Env(gym.Env):
                 self._reward = self._calculate_reward(
                     prev_obs, prev_part_obs, action)
 
-    # Design this please brother you my god fr
     def _calculate_reward(self, prev_obs, prev_part_obs, action):
         # divide all by 10 since now step is in 0.1 seconds <if reward is time based>
         # +0.01 for every survived second
@@ -494,20 +721,20 @@ class CSGO_Env(gym.Env):
         # +0.2 for hitting enemy
 
         # first check if the game is lost or won
-        if self._obs['winner'] != 0:
-            return 1 if self._obs['winner'] == 1 else -1
+        if self._obs.winner != 0:
+            return 1 if self._obs.winner == 1 else -1
 
         # if game ongoing
         else:
             cost = 0
             reward = 0
             # check if bomb is being defused
-            prev_bomb_defusing = prev_obs['bomb_defusing'][0]
-            prev_info_timestamp = prev_obs['bomb_defusing'][1]
-            bomb_defusing = self._obs['bomb_defusing'][0]
-            info_timestamp = self._obs['bomb_defusing'][1]
-            prev_enemy_health = prev_obs['enemy']['health']
-            cur_enemy_health = self._obs['enemy']['health']
+            prev_bomb_defusing = prev_obs.bomb_defusing
+            prev_info_timestamp = prev_obs.bomb_info_time
+            bomb_defusing = self._obs.bomb_defusing
+            info_timestamp = self._obs.bomb_info_time
+            prev_enemy_health = prev_obs.enemy_health
+            cur_enemy_health = self._obs.enemy_health
 
             # reward +0.5 if bomb is prevented from defusing
             if prev_bomb_defusing == 1 and bomb_defusing == 0 and info_timestamp > prev_info_timestamp:
@@ -533,13 +760,13 @@ class CSGO_Env(gym.Env):
                 # now account for reward from partial state, specifically
                 # gaining new information about enemy location
                 # with regards to information, we specifically look at the enemy location
-                prev_enemy_position = prev_part_obs['enemy']['position']
-                prev_enemy_location = prev_enemy_position['location']
-                prev_enemy_timestamp = prev_enemy_position['time_seen']
+                prev_enemy_position = prev_part_obs.enemy_position
+                prev_enemy_location = prev_enemy_position.enemy_location
+                prev_enemy_timestamp = prev_enemy_position.enemy_last_seen
 
-                curr_enemy_position = self._part_obs['enemy']['position']
-                curr_enemy_location = curr_enemy_position['location']
-                curr_enemy_timestamp = curr_enemy_position['time_seen']
+                curr_enemy_position = self._part_obs.enemy_position
+                curr_enemy_location = curr_enemy_position.enemy_location
+                curr_enemy_timestamp = curr_enemy_position.enemy_last_seen
 
                 # enemy recently seen, reward += 0.1
                 if curr_enemy_location is not None and \
@@ -562,8 +789,8 @@ class CSGO_Env(gym.Env):
                 if self._near_goal_state() and bomb_defusing == 0:
                     reward += 0.001
 
-            agent_health = self._obs['agent']['health']
-            prev_agent_health = prev_obs['agent']['health']
+            agent_health = self._obs.agent_health
+            prev_agent_health = prev_obs.agent_health
             if prev_agent_health > agent_health:
                 if bomb_defusing == 1:
                     #we do not penalise if fight is taken when bomb is defusing
@@ -579,257 +806,15 @@ class CSGO_Env(gym.Env):
     # way we apply action might result very straight forward
     # if action dont explicitly state to press a key, we release it
     def _apply_action(self, action, done):
-        # sleep to run through the timed thread
-        action = list(action)
-        action = [str(x.item()) for x in action]
-        action = ','.join(action)
+        # convert action to binary form
+        binary_action = action.convert_to_binary_form()
         
-        GameClient.send_action(action, done)
+        GameClient.send_action(binary_action, done)
         time.sleep(self.ACTION_TIME)
     # TODO: Change datatype
     # DONE, TODO: Check
 
-# State implementation
-    def _make_complete_observation(self, information):
-        agent = information["player"]
-        phase_cd = information["phase_countdowns"]
-        round_info = information["round"]
-        match_result = 0
-        if "bomb" in round_info.keys():
-            bomb_state = round_info['bomb']
-            if bomb_state == 'exploded':
-                match_result = 1 # bomb exploded, Terrorist win
-            elif bomb_state == 'defused':
-                match_result = 2 # bomb defused, Counter Terrorist win
-        enemy = {}
-        # players = GSI_SERVER_TRAINING.get_info("allplayers")#returns dictionary of bombstate
-        players = information["allplayers"]  # returns dictionary of bombstate
-        
-        for player in players:
-            if players[player]['name'] != agent['name']:
-                enemy = players[player]
-                break
-        # bomb = GSI_SERVER_TRAINING.get_info("bomb")
-        bomb = information["bomb"]
-        # match_result = information['bomb']['state']
-        agent_weapon = [agent['weapons'][weapon] for weapon in agent['weapons']
-                        if agent['weapons'][weapon]['state'] == 'active'][0]
-        enemy_screen_coord = information['enemy_screen_coords'].get(
-            'head', None)
-        if enemy_screen_coord is None:
-            enemy_screen_coord = information['enemy_screen_coords'].get(
-                'body', None)
-        return{
-            # 'obs_type': 1,
-            'enemy': {
-                'position': {
-                    # 'areaId': None,
-                    # 'location' : np.fromstring(enemy['position']),
-                    'location': np.array(enemy['position'].split(','), dtype=np.float32),
-                    'forward': np.array(enemy['forward'].split(','), dtype=np.float32),
-                    'time_seen': int(float(phase_cd['phase_ends_in'])),
-                },
-                'enemy_screen_coords': enemy_screen_coord if enemy_screen_coord != (None, None) else (None, None),
-                'health': int(enemy['state']['health']),
-            },
-            'agent': {
-                'position': {
-                    # 'areaId': None,
-                    'location': np.array(agent['position'].split(','), dtype=np.float32),
-                    'forward': np.array(agent['forward'].split(','), dtype=np.float32),
-                },
-                # 'agent_gun': agent_weapon['name'],
-                'agent_gun': 1,
-                'agent_bullets': int(agent_weapon['ammo_clip']) if "ammo_clip" in agent_weapon.keys() else 0,
-                'health': int(agent['state']['health']),
-            },
-            # 'bomb location' : np.fromstring(bomb['position']),
-            'bomb_location': {
-                # 'areaId': None,
-                'location': np.array(bomb['position'].split(','), dtype=np.float32),
-            },
-            'bomb_defusing': (1 if bomb['state'] == 'defusing' else 0,  int(float(phase_cd['phase_ends_in']))),
-            'current_time': int(float(phase_cd['phase_ends_in'])),
-            'winner': match_result
-
-        }
-
-    # TODO: after finishing partial state, sync the making of complete and partial so that they receive the same information [DONE]
-    # TODO: Fill in the blank <models> after finishing implementing them
-    def _make_partial_state(self, information):
-        # if enemy not on bomb, we know bomb not defusing
-        # if see bomb on screen, agent will know whether bomb is defused
-
-        # Get player information first
-        agent = information["player"]
-        agent_weapon = [agent['weapons'][weapon] for weapon in agent['weapons']
-                        if agent['weapons'][weapon]['state'] == 'active'][0]
-
-        # get time
-        phase_cd = information["phase_countdowns"]
-
-        # get round information
-        round_info = information["round"]
-        match_result = 0
-        if "bomb" in round_info.keys():
-            bomb_state = round_info['bomb']
-
-            if bomb_state == 'exploded':
-                match_result = 1 # bomb exploded, Terrorist win
-                
-            elif bomb_state == 'defused':
-                match_result = 2 # bomb defused, Counter Terrorist win
-        # match_result = round_info['win_team']
-        # if match_result == 'T':
-        #     match_result = 1
-        # elif match_result == 'CT':
-        #     match_result = 2
-        # else:
-        #     match_result = 0
-
-        # get prev obv of enemy
-        enemy = self._part_obs['enemy'] if self._part_obs is not None else None
-        enemy_pos = enemy['position'] if enemy is not None else None
-        enemy_loc = enemy_pos['location'] if enemy_pos is not None else None
-        enemy_forw = enemy_pos['forward'] if enemy_pos is not None else None
-        time_of_info_enemy = enemy_pos['time_seen'] if enemy is not None else None
-
-        # get prev obv of bomb
-        bomb_state, time_of_info_bomb = self._part_obs['bomb_defusing'] if self._part_obs is not None else (None, None)
-
-        # check if we have seen the bomb
-        # here we area also 'simulating' the ability of the agent to be able to
-        # distinguish whether the bomb is defusing or not with just the image of the bomb
-        # This is not an easy task since the vision cues for defusing is not very clear
-        # To simulate this ability, once we have seen the bomb on the screen, we will
-        # stream the state of the bomb from the game server
-        # img = information['img']
-        # bomb_seen_on_screen = BOMB_SCREEN_DETECTOR.scan_for_bomb(img)
-        curr_bomb_state = information['bomb']['state']
-
-        # now if our time_of_info_bomb is way too old <5s, we delete the information as irrelevant
-        if time_of_info_bomb is None or int(float(phase_cd['phase_ends_in'])) - time_of_info_bomb > 5:
-            bomb_state = None
-            time_of_info_bomb = int(float(phase_cd['phase_ends_in']))
-
-        # same goes for time_of_info_enemy
-        if time_of_info_enemy is None or int(float(phase_cd['phase_ends_in'])) - time_of_info_enemy > 5:
-            enemy = None
-            enemy_pos = None
-            enemy_loc = None
-            enemy_forw = None
-            time_of_info_enemy = int(float(phase_cd['phase_ends_in']))
-
-        # now we see if we have 'seen' enemy
-        if information['allplayers'] is not None:
-            # returns dictionary of bombstate
-            players = information["allplayers"]
-            for player in players:
-                if players[player]['name'] != agent['name']:
-                    enemy = players[player]
-                    break
-
-            enemy_loc = np.array(
-                enemy['position'].split(','), dtype=np.float32)
-            enemy_forw = np.array(
-                enemy['forward'].split(','), dtype=np.float32)
-            time_of_info_enemy = int(float(phase_cd['phase_ends_in']))
-            bomb_loc = np.array(
-                information["bomb"]['position'].split(','), dtype=np.float32)
-
-           # check if enemy location is close to bomb location
-            if(sum((enemy_loc - bomb_loc)**2) < 30):
-                # so if enemy is close to the bomb, there is a chance that the enemy
-                # is defusing, so we have to see if we have seen the bomb on the screen
-                # to confirm its status
-                # if yes, we know bomb true state
-                if False:
-                    bomb_state_info = information['bomb']['state']
-                    time_of_info_bomb = int(float(phase_cd['phase_ends_in']))
-                    if bomb_state_info == 'defusing':
-                        bomb_state = 1
-                    else:
-                        bomb_state = 0
-                # if no, we assume the bomb to be defusing
-                else:
-                    time_of_info_bomb = int(float(phase_cd['phase_ends_in']))
-                    bomb_state = 1
-            # if enemy is far from bomb, we know bomb is not defusing
-            else:
-                bomb_state = 0
-                time_of_info_bomb = int(float(phase_cd['phase_ends_in']))
-                # bomb_state_info = information['bomb']['state']
-                # time_of_info_bomb = int(float(phase_cd['phase_ends_in']))
-                # if bomb_state_info == 'defusing':
-                #     bomb_state = 1
-                # else:
-                #     bomb_state = 0
-
-        # if we have not seen player, but have seen bomb, we know its state
-        # if False:
-        #     bomb_state = information['bomb']['state']
-        #     time_of_info_bomb = int(float(phase_cd['phase_ends_in']))
-        #     if bomb_state == 'defusing':
-        #         bomb_state = 1
-        #     else:
-        #         bomb_state = 0
-
-        # now check if enemy tried to defuse the bomb
-        # done by comparing prev state of bomb and current state of bomb
-        if bomb_state != 'defusing' and curr_bomb_state == 'defusing':
-            bomb_state = 1
-            time_of_info_bomb = int(float(phase_cd['phase_ends_in']))
-
-        # update time of no information about bomb and enemy, if
-        # there is no information about bomb and enemy
-        if bomb_state is None:
-            time_of_info_bomb = int(float(phase_cd['phase_ends_in']))
-
-        if enemy is None:
-            time_of_info_enemy = int(float(phase_cd['phase_ends_in']))
-
-        bomb = information["bomb"]
-        enemy_screen_coord = information['enemy_screen_coords'].get(
-            'head', None)
-        if enemy_screen_coord is None:
-            enemy_screen_coord = information['enemy_screen_coords'].get(
-                'body', None)
-        return{
-            # 'obs_type': 0,
-            'enemy': {
-                'position': {
-                    # 'areaId': None,
-                    # 'location' : np.fromstring(enemy['position']),
-                    'location': enemy_loc,
-                    'forward': enemy_forw,
-                    'time_seen': time_of_info_enemy,
-                },
-                'enemy_screen_coords': enemy_screen_coord if enemy_screen_coord is not None else None,
-                'health': int(enemy['health']) if enemy is not None else 100, #TODO : fix this
-            },
-            'agent': {
-                'position': {
-                    # 'areaId': None,
-                    'location': np.array(agent['position'].split(','), dtype=np.float32),
-                    'forward': np.array(agent['forward'].split(','), dtype=np.float32),
-                },
-                # 'agent_gun': agent_weapon['name'],
-                'agent_gun': 1,
-                'agent_bullets': int(agent_weapon['ammo_clip']) if "ammo_clip" in agent_weapon.keys() else 0,
-                'health': int(agent['state']['health']),
-            },
-            # 'bomb location' : np.fromstring(bomb['position']),
-            'bomb_location': {
-                # 'areaId': None,
-                'location': np.array(bomb['position'].split(','), dtype=np.float32),
-            },
-            'bomb_defusing': (bomb_state,  time_of_info_bomb),
-            'current_time': int(float(phase_cd['phase_ends_in'])),
-            'winner': match_result
-
-        }
-
-
+  
     def reset(self):
         start_time = time.time()
         self.bombsite_choice = random.choice(['BombsiteA', 'BombsiteB'])
@@ -874,8 +859,10 @@ class CSGO_Env(gym.Env):
         # roll to see if we stay
         if self._time_of_goal_state == None:
             self._time_of_goal_state = 0
-            self._goal_state = random.choice(self._set_of_goals)
-            self._partial_goal_state = self._make_partial_goal(self._goal_state)
+            goal = random.choice(self._set_of_goals)
+            goal_index = self._set_of_goals.index(goal)
+            self._goal_state.update_goal(goal_index, goal)
+            self._partial_goal_state.update_goal(goal_index, goal)
             
         probability_of_staying = np.exp(-self._time_of_goal_state**2/10000)
         roll = np.random.rand()
@@ -884,8 +871,8 @@ class CSGO_Env(gym.Env):
             # no stay
             # generate other goals
             other_goals = self._set_of_goals.copy()
-            if self._goal_state in other_goals:
-                other_goals.remove(self._goal_state)
+            if self._goal_state.goal in other_goals:
+                other_goals.remove(self._goal_state.goal)
             other_goals = np.array(list(other_goals))
             self._time_of_goal_state = 0
             # random goal or no
@@ -893,8 +880,8 @@ class CSGO_Env(gym.Env):
                 # heuristic goal
 
                 # generate complete goal_states, and with that we generate partial goal state
-                curr_loc = self._obs['agent']['position']['location']
-                enemy_loc = self._obs['enemy']['position']['location']
+                curr_loc = self._obs.agent_location
+                enemy_loc = self._obs.enemy_location
                 # want close to agent
                 w1 = [np.abs(np.linalg.norm(curr_loc - goal))
                       for goal in other_goals]
@@ -909,44 +896,25 @@ class CSGO_Env(gym.Env):
 
                 # now we roll again
                 index = np.random.choice(len(other_goals), p=w)
-                self._goal_state = tuple(other_goals[index])
-                self._partial_goal_state = self._make_partial_goal(
-                    self._goal_state)
+                # self._goal_state = tuple(other_goals[index])
+                self._goal_state.update_goal(index, other_goals[index])
+                self._partial_goal_state.update_goal(index, other_goals[index])
             else:
                 # random goal
-                self._goal_state = other_goals[np.random.randint(
-                    len(other_goals))]
-                self._partial_goal_state = self._make_partial_goal(
-                    self._goal_state)
+                rand_index = np.random.randint(len(other_goals))
+                self._goal_state.update_goal(rand_index, other_goals[rand_index])
+                # self._goal_state = other_goals[np.random.randint(
+                #     len(other_goals))]
+                self._partial_goal_state.update_goal(rand_index, other_goals[rand_index])
         else:
             self._time_of_goal_state += 1
-
     
     def _near_goal_state(self):
-        goal_state_as_arr = np.array(list(self._goal_state))
-        curr_loc = np.array(self._obs['agent']['position']['location'])
+        goal_state_as_arr = np.array(list(self._goal_state.goal))
+        curr_loc = np.array(self._obs.agent_location)
         return np.linalg.norm(goal_state_as_arr - curr_loc) <= 50
 
-    def _make_partial_goal(self, goal_state):
         # make partial goal state as of now we just copy the goal state
         return goal_state
 
-    # def _generate_complete_goal_state(self, goal, obs):
-        # 2 kind of goal nature: Aggressive or Passive
-
-        # Aggressive Goal States are one where puts emphasis in closing the distance
-        # between player and agent
-        # if goal == 0:  # 0 for aggressive, None for Passive
-        #     # we form a circle around the enemy, (need not check for enemy location bc complete)
-        #     enemy_loc = obs['enemy']['position']['location']
-        #     agent_loc = obs['agent']['position']['location']
-
-        # else:  # Passive
-
-            # Passive Goal States are one where puts emphasis in keeping the ratio distances
-            # of d(player, bomb) and d(agent,enemy) at 1
-            # if enemy location not known, then we want d(player,bomb) < 500
-
-            # generate all possible goal states
-            # goal state is a tuple of (x, y, z, enemy_x, enemy_y, enemy_z)
-            # goal state is the state that the a
+ 

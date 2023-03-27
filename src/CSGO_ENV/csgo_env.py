@@ -17,7 +17,7 @@ from pynput import mouse, keyboard
 from pynput.mouse import Button
 from pynput.keyboard import Key
 import time
-from gym.spaces.utils import flatdim
+from gym.spaces.utils import flatdim, flatten_space
 
 TRAINING = True
 
@@ -747,6 +747,12 @@ class CSGO_Env(gym.Env):
         print(f"took {time.time() - start_time} to reset")
         return self._obs, self._part_obs, 0, False,self._goal_state, self._partial_goal_state
 
+    # def number_of_states(self):
+    #     #number of states is equal to multiplications of:
+    #     #enemy location, enemy forward, agent location, agent forward, bomb location, bomb defusing, agent bullets, agent health, enemy health domain space
+    #     number_of_locations = (self.max_x - self.min_x) * (self.max_y - self.min_y) * (self.max_z - self.min_z)
+    #     health_values = 100
+        
 # Goals implementation
     # Goals are basically a strategic location in the map
     # Extending on the idea of a universal policy
@@ -910,7 +916,5 @@ if __name__ == '__main__':
     loc_sp_2 = CSGO_Env_Utils.location_domain(100, 0, 100, 0, 100, 0)
     forw_sp = CSGO_Env_Utils.forward()
     loc = Tuple([spaces.Discrete(2), spaces.Box(low=0, high=TIME_STEPS, shape=(1,), dtype=np.int32)])
-    print(flatdim(ob_sp))
-    print(flatdim(loc_sp_2))
-    print(flatdim(forw_sp))
-    print(flatdim(loc))
+    loc_s = flatten_space(loc_sp_2)
+    print(loc_s.shape)

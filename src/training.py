@@ -25,7 +25,15 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rol
     # logger.info('scaling actions by {} before executing in env'.format(max_action))
     
     # agent = DDPG(env.state_space.shape, env.observation_space.shape, env.action_space.shape)
-    agent = DDPG(env.observation_space, env.action_space, env.goal_space, device)
+    
+    agent = DDPG(state_space = env.observation_space_size, \
+            action_space = env.action_space_size, \
+            goal_space = env.goal_space_size, \
+            device = device,\
+            state_dim = env.observation_space,\
+            action_dim = env.action_space,\
+            goal_dim= env.goal_space,\
+                                )
 
 
     # logger.info('Using agent with the following configuration:')

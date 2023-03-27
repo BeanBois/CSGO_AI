@@ -13,7 +13,7 @@ from gym.spaces.utils import flatdim
 #BASICALLY FOR LOCATION WE HAVE A ARRAY FOR EACH AXIS FILLED WITH 1 IF LOCATION IS THERE IN THAT AXIS, ELSE 0
 #THEN WE DO A CARTESIAN PRODUCT OF THE 3 ARRAYS TO GET THE LOCATION
 
-
+CONFIDENCE = 0.5
 
 def flatten_location(location,DIMENSIONS):
     x_min, x_max, y_min, y_max, z_min, z_max = DIMENSIONS
@@ -25,8 +25,6 @@ def flatten_location(location,DIMENSIONS):
         y_axis[location[1]-y_min] = 1
         z_axis[location[2]-z_min] = 1
     return cartesian_product(x_axis,y_axis,z_axis)
-
-    
 
 def flatten_p_obs(obs):
     enemy_pos = obs['enemy']['position'] 
@@ -86,50 +84,91 @@ def flatten_goal(goal):
     arr.flatten()
     return arr
 
-
+class Action:
+    #3 forms
+    #super compact form : a number
+    #compact form : number represented as a binary list
+    #loose form : array of zeros, where the index of the action is 1
+    
+    def __init__(self, action, action_dim, action_domain_size):
+        self.action_tag = self.process_loose_action(action)
+        self.action_dim = action_dim
+        self.action_domain_size = action_domain_size
+    
+    def process_loose_action(self, action):
+        acc = 0
+        for i in len(action):
+            acc += action[i] * (2**i)
+        return acc
+    #loose form
+    def convert_to_loose_form(self):
+        arr = np.zeros(self.action_domain_size)
+        if self.action_tag is not None:
+           arr[self.action_tag] = 1
+        return arr      
+    #compact form   
+    def convert_to_binary_form(self):
+        part_arr = [int(x) for x in bin(self.action_tag)[2:]]
+        arr = np.zeros(self.action_dim)
+        for i in range(len(part_arr)):
+            arr[i] = part_arr[i]
+        return arr
+    
 class ReplayBuffer:
     def __init__(self, max_size):
         self.buffer = []
         self.max_size = max_size
     
     def push(self, state, p_state, action, reward, next_state, next_p_state, goal, p_goal, done):
-        transition = (flatten_obs(state), flatten_p_obs(p_state), action, reward, flatten_obs(next_state), flatten_p_obs(next_p_state), flatten_goal(goal), flatten_goal(p_goal), done)
+        transition = (state, p_state, action, reward, next_state, next_p_state, goal, p_goal, done)
         self.buffer.append(transition)
         if len(self.buffer) > self.max_size:
             self.buffer.pop(0)
     
     def sample(self, batch_size):
         state_batch, p_state_batch, action_batch, reward_batch, next_state_batch, next_p_state_batch, goal_batch, p_goal_batch, done_batch = zip(*random.sample(self.buffer, batch_size))
-        return torch.tensor(state_batch), torch.to_tensor(p_state_batch), \
-                torch.tensor(action_batch), torch.tensor(reward_batch).unsqueeze(1), \
-                torch.tensor(next_state_batch), torch.to_tensor(next_p_state_batch),\
-                torch.to_tensor(goal_batch), torch.to_tensor(p_goal_batch), torch.tensor(done_batch).unsqueeze(1)
+        return state_batch, p_state_batch, \
+                action_batch, reward_batch, \
+                next_state_batch, next_p_state_batch,\
+                goal_batch, p_goal_batch, done_batch
 
 class Critic(nn.Module):
     def __init__(self, state_dim, action_dim, goal_dim):
+        self.goal_dim = goal_dim
         super(Critic, self).__init__()
-        self.fc1 = nn.Linear(flatdim(state_dim) + flatdim(action_dim) + flatdim(goal_dim), 512)
-        self.fc2 = nn.Linear(512, 512)
-        self.fc3 = nn.Linear(512, 512)
-        self.fc4 = nn.Linear(512, 1)
+        self.fc1 = nn.Linear(state_dim * action_dim * goal_dim, 4096)
+        self.fc2 = nn.Linear(4096, 2048)
+        self.fc3 = nn.Linear(2048, 1024)
+        self.fc4 = nn.Linear(1024, 512)
+        self.fc5 = nn.Linear(512, 512)
+        self.fc6 = nn.Linear(512, 1)
         self.relu = nn.ReLU()
 
     def forward(self, state, action, goal):
-        x = torch.cat([state, action, goal], dim=1)
+        state_arr = state.convert_to_array()
+        goal_arr = goal.convert_to_array(self.goal_dim)
+        x = torch.cat([state_arr, action, goal_arr], dim=1)
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         x = self.relu(self.fc3(x))
         x = self.fc4(x)
         return x
 
-
 class Actor(nn.Module):
-    def __init__(self, state_dim, action_dim, goal_dim):
+    def __init__(self, state_dim, action_dim, goal_dim, action_space):
+        self.action_space = action_space
+        self.action_dim = action_dim
         super(Actor, self).__init__()
-        self.fc1 = nn.Linear(flatdim(state_dim) + flatdim(goal_dim), 512)
-        self.fc2 = nn.Linear(512, 512)
-        self.fc3 = nn.Linear(512, 512)
-        self.fc4 = nn.Linear(512, flatdim(action_dim)) # action_dim = 9
+        self.goal_dim = goal_dim
+        print('state_dim', state_dim)
+        print('action_dim', action_dim)
+        print('goal_dim', goal_dim)
+        print('state * goal', state_dim * goal_dim)
+        self.fc1 = nn.Linear(state_dim * goal_dim, 2048)
+        self.fc2 = nn.Linear(2048, 2048)
+        self.fc3 = nn.Linear(2048, 1024)
+        self.fc4 = nn.Linear(1024, 521)
+        self.fc5 = nn.Linear(512, action_dim) # action_dim = 2**10 -1
         self.relu = nn.ReLU()
         # self.tanh = nn.Tanh()
         self.sigmoid = nn.Sigmoid()
@@ -143,18 +182,27 @@ class Actor(nn.Module):
         x = self.relu(self.fc2(x))
         x = self.relu(self.fc3(x))
         x = self.sigmoid(self.fc4(x))
-        return x
-
+        x = (x > CONFIDENCE).int()
+        action = Action(x, self.action_dim ,self.action_space)
+        return action
 
 class DDPG:
-    def __init__(self, state_dim, action_dim, goal_dim, device):
+    def __init__(self, state_dim, action_dim, goal_dim, action_space, state_space, goal_space, device):
 
+        self.state_dim = flatdim(state_dim)
+        self.action_dim = flatdim(action_dim)
+        self.goal_dim = flatdim(goal_dim)
+        self.state_space = state_space
+        self.action_space = action_space
+        self.goal_space = goal_space
+        
+        self.goal_dim = goal_dim
         self.device = device
-        self.actor = Actor(state_dim, action_dim,goal_dim).to(device)
-        self.critic = Critic(state_dim, action_dim, goal_dim).to(device)
+        self.actor = Actor(self.state_space, self.action_space, self.goal_space, self.action_dim).to(device)
+        self.critic = Critic(self.state_space, self.action_space, self.goal_space).to(device)
 
-        self.target_actor = Actor(state_dim, action_dim,goal_dim).to(device)
-        self.target_critic = Critic(state_dim, action_dim, goal_dim).to(device)
+        self.target_actor = Actor(self.state_space, self.action_space, self.goal_space, self.action_dim).to(device)
+        self.target_critic = Critic(self.state_space, self.action_space, self.goal_space).to(device)
 
         self.target_actor.load_state_dict(self.actor.state_dict())
         self.target_critic.load_state_dict(self.critic.state_dict())
@@ -195,9 +243,9 @@ class DDPG:
 
         # Prepare for the target q batch
         next_q_values = self.target_critic([
-            to_tensor(next_state_batch, volatile=True),
-            self.target_actor(to_tensor(next_state_batch, volatile=True), to_tensor(p_goal_batch), volatile=True),
-            to_tensor(goal_batch, volatile=True),
+            to_tensor([x.convert_to_array() for x in next_state_batch], volatile=True),
+            self.target_actor(to_tensor([x.convert_to_array() for x in next_p_state_batch], volatile=True), to_tensor(p_goal_batch), volatile=True),
+            to_tensor([x.convert_to_array(self.goal_size) for x in goal_batch], volatile=True),
         ])
         next_q_values.volatile=False
 
@@ -207,7 +255,9 @@ class DDPG:
         # Critic update
         self.critic.zero_grad()
 
-        q_batch = self.critic([ to_tensor(state_batch), to_tensor(action_batch), to_tensor(goal_batch) ])
+        q_batch = self.critic([ to_tensor([x.convert_to_array() for x in state_batch]),\
+            to_tensor([x.convert_to_loose_form() for x in action_batch])\
+            , to_tensor([x.convert_to_array(self.goal_size) for x in goal_batch]) ])
         
         value_loss = criterion(q_batch, target_q_batch)
         value_loss.backward()
@@ -218,7 +268,7 @@ class DDPG:
 
         policy_loss = -self.critic([
             to_tensor(state_batch),
-            self.actor(to_tensor(state_batch), to_tensor(p_goal_batch)),
+            self.actor(to_tensor(p_state_batch), to_tensor(p_goal_batch)),
             to_tensor(goal_batch)
         ])
 
@@ -254,22 +304,21 @@ class DDPG:
     #and then we gonna convert it to a binary number
     #and then we gonna convert it to a list of 0 and 1
     def random_action(self):
-        action = np.random.uniform(0, 1, size=action_dim)
-        action = (action > 0.5).int()
+        action = np.random.uniform(0, 1, size=self.action_dim)
+        action = (action > CONFIDENCE).int()
         self.a_t = action
         return self._process_action(action)
 
     #redo this
     #output of actor network is
-    def select_action(self, p_s_t, g_o, decay_epsilon=True):
-        x1 = flatten_p_obs(p_s_t)
-        x2 = flatten_goal(g_o)
+    def select_action(self, p_s_t, g_o):
+        x1 = p_s_t.convert_to_array()
+        x2 = g_o.convert_to_array(self.goal_dim)
         x1 = to_tensor(x1)
         x2 = to_tensor(x2)
         action = self.actor(x1,x2)
-        action = (action > 0.5).int()
+        action = action.convert_to_binary_form()
         self.a_t = action
-        print('action chosen:', action)
         return self._process_action(action)
 
     def _process_action(self,action):
