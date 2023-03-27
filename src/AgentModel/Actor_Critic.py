@@ -18,7 +18,7 @@ class ReplayBuffer:
             self.buffer.pop(0)
     
     def sample(self, batch_size):
-        state_batch, p_state_batch, action_batch, reward_batch, next_state_batch, next_p_state_batch, goal_batch, p_goal_batch done_batch = zip(*random.sample(self.buffer, batch_size))
+        state_batch, p_state_batch, action_batch, reward_batch, next_state_batch, next_p_state_batch, goal_batch, p_goal_batch, done_batch = zip(*random.sample(self.buffer, batch_size))
         return torch.tensor(state_batch), torch.to_tensor(p_state_batch), \
                 torch.tensor(action_batch), torch.tensor(reward_batch).unsqueeze(1), \
                 torch.tensor(next_state_batch), torch.to_tensor(next_p_state_batch)\
@@ -40,7 +40,6 @@ class Critic(nn.Module):
         x = self.relu(self.fc3(x))
         x = self.fc4(x)
         return x
-
 
 class Actor(nn.Module):
     def __init__(self, state_dim, action_dim, action_range, goal_dim):
@@ -75,7 +74,6 @@ class Actor(nn.Module):
         x = self.relu(self.fc2(x))
         x = self.tanh(self.fc3(x)) * self.action_range
         return x
-
 
 class DDPG:
     def __init__(self, state_dim, action_dim, action_range, goal_dim, p_goal_dim, device):

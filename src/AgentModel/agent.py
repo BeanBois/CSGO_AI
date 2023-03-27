@@ -13,7 +13,7 @@ from gym.spaces.utils import flatdim
 #BASICALLY FOR LOCATION WE HAVE A ARRAY FOR EACH AXIS FILLED WITH 1 IF LOCATION IS THERE IN THAT AXIS, ELSE 0
 #THEN WE DO A CARTESIAN PRODUCT OF THE 3 ARRAYS TO GET THE LOCATION
 
-
+CONFIDENCE = 0.7
 
 def flatten_location(location,DIMENSIONS):
     x_min, x_max, y_min, y_max, z_min, z_max = DIMENSIONS
@@ -148,7 +148,7 @@ class Actor(nn.Module):
 
 class DDPG:
     def __init__(self, state_dim, action_dim, goal_dim, device):
-
+        self.action_dim = flatdim(action_dim)
         self.device = device
         self.actor = Actor(state_dim, action_dim,goal_dim).to(device)
         self.critic = Critic(state_dim, action_dim, goal_dim).to(device)
@@ -196,7 +196,7 @@ class DDPG:
         # Prepare for the target q batch
         next_q_values = self.target_critic([
             to_tensor(next_state_batch, volatile=True),
-            self.target_actor(to_tensor(next_state_batch, volatile=True), to_tensor(p_goal_batch), volatile=True),
+            self.target_actor(to_tensor(next_p_state_batch, volatile=True), to_tensor(p_goal_batch), volatile=True),
             to_tensor(goal_batch, volatile=True),
         ])
         next_q_values.volatile=False
@@ -218,7 +218,7 @@ class DDPG:
 
         policy_loss = -self.critic([
             to_tensor(state_batch),
-            self.actor(to_tensor(state_batch), to_tensor(p_goal_batch)),
+            self.actor(to_tensor(p_state_batch), to_tensor(p_goal_batch)),
             to_tensor(goal_batch)
         ])
 
@@ -254,20 +254,22 @@ class DDPG:
     #and then we gonna convert it to a binary number
     #and then we gonna convert it to a list of 0 and 1
     def random_action(self):
-        action = np.random.uniform(0, 1, size=action_dim)
-        action = (action > 0.5).int()
+        action = np.random.uniform(0, 1, size=self.action_dim)
+        action = (action > 0.5)
+        action = 1*action
         self.a_t = action
         return self._process_action(action)
 
     #redo this
     #output of actor network is
-    def select_action(self, p_s_t, g_o, decay_epsilon=True):
+    def select_action(self, p_s_t, g_o):
         x1 = flatten_p_obs(p_s_t)
         x2 = flatten_goal(g_o)
         x1 = to_tensor(x1)
         x2 = to_tensor(x2)
         action = self.actor(x1,x2)
-        action = (action > 0.5).int()
+        print('pre selected action chosen:', action)
+        action = (action > CONFIDENCE).int()
         self.a_t = action
         print('action chosen:', action)
         return self._process_action(action)

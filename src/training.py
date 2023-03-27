@@ -77,8 +77,13 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rol
             # Perform rollouts.
             for t_rollout in range(nb_rollout_steps):
                 print("t_rollout: ", t_rollout)
+                
                 # Predict next action.
-                action, q = agent.select_action(p_obs, p_goal), None
+                action, q = None, 0
+                if cycle < 1:
+                    action, q = agent.random_action(), 0
+                else:
+                    action, q = agent.select_action(p_obs, p_goal), 0
                 obs = env.get_current_observation()
                 # assert action.shape == env.action_space.shape
                 # assert max_action.shape == action.shape
@@ -101,13 +106,14 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_rol
                     epoch_episode_rewards.append(episode_reward)
                     episode_rewards_history.append(episode_reward)
                     epoch_episode_steps.append(episode_step)
-                    episode_reward = 0.
+                    episode_reward = 0
                     episode_step = 0
                     epoch_episodes += 1
                     episodes += 1
 
                     agent.reset(obs, p_obs, goal, p_goal)
                     obs, p_obs, reward, done, goal, p_goal = env.reset()
+                    break
 
             # Train.
             epoch_actor_losses = []

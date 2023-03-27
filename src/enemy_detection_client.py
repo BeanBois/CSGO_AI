@@ -27,6 +27,7 @@ class EnemyDetectorClient:
         # server = ('10.40.36.226',server_port)
         
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(0.5)
         s.bind((host,port))
         data, addr = s.recvfrom(1024)
         data = data.decode('utf-8')

@@ -13,6 +13,12 @@ class GameClient:
         data = {'action' : action, 'done' : "1" if done else ""}
         data = str(data)
         s.sendto(data.encode('utf-8'), server)
+        data = s.recv(1024)
+        data = data.decode('utf-8')
+        while data != "done":
+            data = s.recv(1024)
+            data = data.decode('utf-8')
+            print(data)
         s.close()
         # data, addr = s.recvfrom(1024)
 
