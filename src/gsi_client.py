@@ -22,7 +22,6 @@ class client:
         port = 4005
         server = ('192.168.1.70', server_port)
         host='192.168.1.109' #client ip
-        
         # host='10.40.35.107' #client ip
         
         # server = ('10.40.35.107', 4000)

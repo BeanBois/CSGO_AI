@@ -760,7 +760,7 @@ class CSGO_Env(gym.Env):
             self._time_of_goal_state = 0
             self._goal_state = random.choice(self._set_of_goals)
             self._partial_goal_state = self._make_partial_goal(self._goal_state)
-            
+            return
         probability_of_staying = np.exp(-self._time_of_goal_state**2/10000)
         roll = np.random.rand()
         if roll > probability_of_staying:

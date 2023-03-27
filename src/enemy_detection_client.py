@@ -19,7 +19,7 @@ class EnemyDetectorClient:
     def get_enemy_info():
         host='192.168.1.109' #client ip
         # host = '10.40.212.48'
-        port = 5005
+        port = 6005
         
         server_port = 5000
 
