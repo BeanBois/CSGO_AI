@@ -28,7 +28,7 @@ class client:
         
         
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.settimeout(0.5)
+        # s.settimeout(5)
         
         s.bind((host,port))
         s.sendto(key.encode('utf-8'), server)

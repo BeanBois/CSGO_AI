@@ -320,7 +320,7 @@ class CSGO_Env(gym.Env):
             enemy_information = EnemyDetectorClient.get_enemy_info()
 
             # enemy_on_radar = ENEMY_RADAR_DETECTOR.scan_for_enemy(img)
-            enemy_on_radar = enemy_information['enemy_on_screen'] 
+            enemy_on_radar = enemy_information['enemy_on_radar'] 
             enemy_screen_coords = enemy_information['enemy_screen_coords']
             # #now check if see enemy on screen
             # if enemy_on_radar:
@@ -400,81 +400,82 @@ class CSGO_Env(gym.Env):
 
         # if game ongoing
         else:
-            cost = 0
-            reward = 0
-            # check if bomb is being defused
-            prev_bomb_defusing = prev_obs['bomb_defusing'][0]
-            prev_info_timestamp = prev_obs['bomb_defusing'][1]
-            bomb_defusing = self._obs['bomb_defusing'][0]
-            info_timestamp = self._obs['bomb_defusing'][1]
-            prev_enemy_health = prev_obs['enemy']['health']
-            cur_enemy_health = self._obs['enemy']['health']
+            return 0.005
+        #     cost = 0
+        #     reward = 0
+        #     # check if bomb is being defused
+        #     prev_bomb_defusing = prev_obs['bomb_defusing'][0]
+        #     prev_info_timestamp = prev_obs['bomb_defusing'][1]
+        #     bomb_defusing = self._obs['bomb_defusing'][0]
+        #     info_timestamp = self._obs['bomb_defusing'][1]
+        #     prev_enemy_health = prev_obs['enemy']['health']
+        #     cur_enemy_health = self._obs['enemy']['health']
 
-            # reward +0.5 if bomb is prevented from defusing
-            if prev_bomb_defusing == 1 and bomb_defusing == 0 and info_timestamp > prev_info_timestamp:
-                reward += 0.25
-            else:
-                pass
+        #     # reward +0.5 if bomb is prevented from defusing
+        #     if prev_bomb_defusing == 1 and bomb_defusing == 0 and info_timestamp > prev_info_timestamp:
+        #         reward += 0.25
+        #     else:
+        #         pass
 
-            # if bomb defusing, we penalize per timestep, unless enemy is being hit
-            if bomb_defusing == 1:
-                if prev_enemy_health > cur_enemy_health:
-                    reward += 0.1725
-                else:
-                    reward -= 0.0125
+        #     # if bomb defusing, we penalize per timestep, unless enemy is being hit
+        #     if bomb_defusing == 1:
+        #         if prev_enemy_health > cur_enemy_health:
+        #             reward += 0.1725
+        #         else:
+        #             reward -= 0.0125
 
-            # if bomb not defusing we take note focus on finding the enemy and hiding information
-            else:
-                if prev_enemy_health > cur_enemy_health:
-                    reward += 0.125
-                else:
-                    if action[3] == 6:
-                        cost += 0.0025  # cost for making noise and wasting gun ammo
+        #     # if bomb not defusing we take note focus on finding the enemy and hiding information
+        #     else:
+        #         if prev_enemy_health > cur_enemy_health:
+        #             reward += 0.125
+        #         else:
+        #             if action[3] == 6:
+        #                 cost += 0.0025  # cost for making noise and wasting gun ammo
 
-                # now account for reward from partial state, specifically
-                # gaining new information about enemy location
-                # with regards to information, we specifically look at the enemy location
-                prev_enemy_position = prev_part_obs['enemy']['position']
-                prev_enemy_location = prev_enemy_position['location']
-                prev_enemy_timestamp = prev_enemy_position['time_seen']
+        #         # now account for reward from partial state, specifically
+        #         # gaining new information about enemy location
+        #         # with regards to information, we specifically look at the enemy location
+        #         prev_enemy_position = prev_part_obs['enemy']['position']
+        #         prev_enemy_location = prev_enemy_position['location']
+        #         prev_enemy_timestamp = prev_enemy_position['time_seen']
 
-                curr_enemy_position = self._part_obs['enemy']['position']
-                curr_enemy_location = curr_enemy_position['location']
-                curr_enemy_timestamp = curr_enemy_position['time_seen']
+        #         curr_enemy_position = self._part_obs['enemy']['position']
+        #         curr_enemy_location = curr_enemy_position['location']
+        #         curr_enemy_timestamp = curr_enemy_position['time_seen']
 
-                # enemy recently seen, reward += 0.1
-                if curr_enemy_location is not None and \
-                        prev_enemy_location is None and \
-                        curr_enemy_timestamp > prev_enemy_timestamp:  # need to replace here to accommodate for the fact that full state should not receive this reward
-                    reward += 0.05
-                # enemy kept track of, reward += 0.001
-                elif curr_enemy_location is None and \
-                        prev_enemy_location is not None:
-                    reward += 0.001
+        #         # enemy recently seen, reward += 0.1
+        #         if curr_enemy_location is not None and \
+        #                 prev_enemy_location is None and \
+        #                 curr_enemy_timestamp > prev_enemy_timestamp:  # need to replace here to accommodate for the fact that full state should not receive this reward
+        #             reward += 0.05
+        #         # enemy kept track of, reward += 0.001
+        #         elif curr_enemy_location is None and \
+        #                 prev_enemy_location is not None:
+        #             reward += 0.001
 
-                # if shift/ctrl not press when moving , penalize for making sound
-                # action[2] corr to ctrl, action[1] corr to shift
-                # action[0] corr to movement key, action[2] corr to jump key
-                if (action[2] == 0 or action[1] == 0) and \
-                        (action[0] == 0 or action[3] != 0):
-                    cost += 0.0005
+        #         # if shift/ctrl not press when moving , penalize for making sound
+        #         # action[2] corr to ctrl, action[1] corr to shift
+        #         # action[0] corr to movement key, action[2] corr to jump key
+        #         if (action[2] == 0 or action[1] == 0) and \
+        #                 (action[0] == 0 or action[3] != 0):
+        #             cost += 0.0005
 
-                # +0.02 if near goal state and not defusing bomb
-                if self._near_goal_state() and bomb_defusing == 0:
-                    reward += 0.001
+        #         # +0.02 if near goal state and not defusing bomb
+        #         if self._near_goal_state() and bomb_defusing == 0:
+        #             reward += 0.001
 
-            agent_health = self._obs['agent']['health']
-            prev_agent_health = prev_obs['agent']['health']
-            if prev_agent_health > agent_health:
-                if bomb_defusing == 1:
-                    #we do not penalise if fight is taken when bomb is defusing
-                    pass
-                else:
-                    if agent_health <= 50:
-                        reward -= 0.2
-                    else:
-                        reward -= 0.1
-        return reward - cost
+        #     agent_health = self._obs['agent']['health']
+        #     prev_agent_health = prev_obs['agent']['health']
+        #     if prev_agent_health > agent_health:
+        #         if bomb_defusing == 1:
+        #             #we do not penalise if fight is taken when bomb is defusing
+        #             pass
+        #         else:
+        #             if agent_health <= 50:
+        #                 reward -= 0.2
+        #             else:
+        #                 reward -= 0.1
+        # return reward - cost
 
 # Action
     # way we apply action might result very straight forward
@@ -713,12 +714,20 @@ class CSGO_Env(gym.Env):
 
 
     def reset(self):
-        start_time = time.time()
+        
+        #wait until the game is live
+        round_info = client.get_info("round")
+        while round_info['phase'] != 'live':
+            round_info = client.get_info("round")
+            
+            
         self.bombsite_choice = random.choice(['BombsiteA', 'BombsiteB'])
         self._set_of_goals = CSGO_Env_Utils.generate_set_of_goals(self.bombsite_choice)
         
         GameClient.send_action(f"restart {self.bombsite_choice}")
         print('Restarting game...')
+        
+
         # get information and img
         information = {}
         information['player'] = client.get_info("player")
@@ -727,7 +736,6 @@ class CSGO_Env(gym.Env):
         information['allplayers'] = client.get_info("allplayers")
         information['bomb'] = client.get_info("bomb")
         self._get_state(information)
-        print(f"took {time.time() - start_time} to reset")
         return self._obs, self._part_obs, 0, False,self._goal_state, self._partial_goal_state
 
 # Goals implementation
@@ -768,7 +776,9 @@ class CSGO_Env(gym.Env):
             # no stay
             # generate other goals
             other_goals = self._set_of_goals.copy()
-            other_goals.remove(self._goal_state)
+            print(f'goal state is {self._goal_state}')
+            if self._goal_state in other_goals:
+                other_goals.remove(self._goal_state)
             other_goals = np.array(other_goals)
             self._time_of_goal_state = 0
             # random goal or no

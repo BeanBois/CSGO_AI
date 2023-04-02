@@ -93,13 +93,15 @@ class ReplayBuffer:
         self.max_size = max_size
     
     def push(self, state, p_state, action, reward, next_state, next_p_state, goal, p_goal, done):
-        transition = (flatten_obs(state), flatten_p_obs(p_state), action, reward, flatten_obs(next_state), flatten_p_obs(next_p_state), flatten_goal(goal), flatten_goal(p_goal), done)
+        transition = tuple((flatten_obs(state), flatten_p_obs(p_state), action, reward, flatten_obs(next_state), flatten_p_obs(next_p_state), flatten_goal(goal), flatten_goal(p_goal), done))
         self.buffer.append(transition)
+        print(len(self.buffer))
         if len(self.buffer) > self.max_size:
             self.buffer.pop(0)
     
     def sample(self, batch_size):
-        state_batch, p_state_batch, action_batch, reward_batch, next_state_batch, next_p_state_batch, goal_batch, p_goal_batch, done_batch = zip(*random.sample(self.buffer, batch_size))
+        # state_batch, p_state_batch, action_batch, reward_batch, next_state_batch, next_p_state_batch, goal_batch, p_goal_batch, done_batch = zip(*random.sample(self.buffer, batch_size))
+        state_batch, p_state_batch, action_batch, reward_batch, next_state_batch, next_p_state_batch, goal_batch, p_goal_batch, done_batch = random.sample(self.buffer, batch_size)
         return torch.tensor(state_batch), torch.to_tensor(p_state_batch), \
                 torch.tensor(action_batch), torch.tensor(reward_batch).unsqueeze(1), \
                 torch.tensor(next_state_batch), torch.to_tensor(next_p_state_batch),\
