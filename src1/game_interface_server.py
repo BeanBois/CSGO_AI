@@ -156,8 +156,9 @@ class GameServer:
 
         if left_click:
             # if cursor_location is not None or cursor_location is not (None,None):
-            if cursor_location[0] is not None and cursor_location[1] is not None:
-                self.mouse_controller.position = cursor_location
+            if cursor_location is not None:
+                if cursor_location[0] is not None and cursor_location[1] is not None:
+                    self.mouse_controller.position = cursor_location
                 # curr_cursor_position = self.mouse_controller.position
                 # self.mouse_controller.move(
                 #     cursor_location[0] - curr_cursor_position[0], cursor_location[1] - curr_cursor_position[1])
