@@ -7,7 +7,9 @@ import socket
 import re
 import json
 import pandas as pd
+from pynput.mouse import Controller, Button
 class server:
+    Mouse_Controller = Controller()
     def start_csgo_gsi_server():
         GSI_SERVER_TRAINING.start_server()
         # host = '192.168.0.12' #Server ip
@@ -29,6 +31,9 @@ class server:
                 data = data.decode('utf-8')
                 print("Message from: " + str(addr))
                 # print("From connected user: " + data)
+                if data == "switch spectator target":
+                    server.Mouse_Controller.click(Button.left, 1)
+                    continue
                 data = GSI_SERVER_TRAINING.get_info(data)
                 data = re.sub(r"\'", "\"", str(data))
                 data = re.sub(r"True", "\"1T\"", data)

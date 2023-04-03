@@ -179,6 +179,13 @@ class GameServer:
         # configure game settings
         self.csgo_type_command(
             self.keyboard_controller, 'sv_cheats', '1')  # allow cheats
+        
+        #ignore win condition so game round does not end, this is crucial so that we can keep training for more than 36 rounds
+        #without this, the game will end after 36 rounds and we will have to restart the game, which is not optimal
+        self.csgo_type_command(
+            self.keyboard_controller, 'mp_ignore_round_win_conditions', '1'
+        )
+        
         # dont allow grenades or any utilities
         self.csgo_type_command(
             self.keyboard_controller, 'mp_buy_allow_grenades', '0')
