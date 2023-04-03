@@ -10,7 +10,7 @@ from awpy.data import NAV_CSV
 import re
 import random
 from enemy_detector_server import ENEMY_SCREEN_DETECTOR
-
+import select
 class GameServer:
     def __init__(self, action_time= 0.1):
         self.keyboard_controller = keyboard.Controller()
@@ -30,33 +30,36 @@ class GameServer:
             self.get_action()
     
     def get_action(self, s, client):
-        data, addr = s.recvfrom(1024)
-        data = data.decode('utf-8')
-        data = re.sub(r"\'", "\"", str(data))
-        data = json.loads(data)
-        done = bool(data['done'])
-        action = data['action']
-        if action == 'configure':
-            self.configure_game()
-        elif action.startswith("start"):
-            words = action.split()
-            print(words)
-            self.start_game(words[1])
-        elif action.startswith("restart"):
-            words = action.split()
-            self.start_game(words[1])
-        elif action == 'endround':
-            self.endround()
-        elif action is None:
-            pass
-        else:
-            action = [int(i) for i in data['action'].split(',')]
-            if not done:
-                self._apply_action(action)
+        ready = select.select([s], [], [], 0.5)
+        print(ready)
+        if ready[0]:
+            data, addr = s.recvfrom(1024)
+            data = data.decode('utf-8')
+            data = re.sub(r"\'", "\"", str(data))
+            data = json.loads(data)
+            done = bool(data['done'])
+            action = data['action']
+            if action == 'configure':
+                self.configure_game()
+            elif action.startswith("start"):
+                words = action.split()
+                print(words)
+                self.start_game(words[1])
+            elif action.startswith("restart"):
+                words = action.split()
+                self.start_game(words[1])
+            elif action == 'endround':
+                self.endround()
+            elif action is None:
+                pass
+            else:
+                action = [int(i) for i in data['action'].split(',')]
+                if not done:
+                    self._apply_action(action)
+            print('action applied')
         
         response = "done"
         s.sendto(response.encode('utf-8'), client)
-        print('action applied')
         return
 
 
@@ -66,7 +69,7 @@ class GameServer:
         time.sleep(0.1)
         self.keyboard_controller.release('`')
         
-        self.csgo_type_command('endround')
+        self.csgo_type_command(self.keyboard_controller ,'endround')
         
         self.keyboard_controller.press('`')
         time.sleep(0.1)

@@ -244,7 +244,7 @@ class EnemyDetectorServer:
         client =('192.168.1.109', 4505)
         
         while True:
-            #receive the coordinates of the enemy on screen, and if enemy is present
+            print('detecting enemy')
             img = grabscreen.grab_screen(region=(0, 0, 1920, 1080)) #TODO: decide on region
             # print(img.shape)
             # cv2.imshow('window', img)
@@ -253,7 +253,8 @@ class EnemyDetectorServer:
             y0 = RADAR_RANGE[1]
             x1 = RADAR_RANGE[2]
             y1 = RADAR_RANGE[3]
-            radar_img = img[y0:y1, x0:x1]
+            radar_img = img.copy() 
+            radar_img = radar_img[y0:y1, x0:x1]
             # cv2.imshow('radar', radar_img)
             # cv2.waitKey(1) #comment out, jsut to check implementation
             enemy_on_radar = ENEMY_RADAR_DETECTOR.scan_for_enemy(radar_img)
@@ -270,6 +271,7 @@ class EnemyDetectorServer:
             # data = json.dumps(data)
             data = json.dumps(data)
             s.sendto(data.encode('utf-8'), client)
+            print('sent data to client', client)
         
         # s.close()
 

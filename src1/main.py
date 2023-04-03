@@ -9,8 +9,6 @@ port = 5000
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.bind((host, port))
-# s.settimeout(5)
-# s.setblocking(0)    
 game_client = ('192.168.1.109', 5005)
 enemy_detector_client = ('192.168.1.109', 6005)
 # host = '127.0.0.1' #server ip
@@ -25,17 +23,14 @@ enemy_detector_client = ('192.168.1.109', 6005)
 
 game_server = GameServer()
 # enemy_detector_server = EnemyDetectorServer()
-t1 = th.Thread(target=game_server.get_action, args=(s, game_client))
-t2 = th.Thread(target=EnemyDetectorServer.enemy_detect, args=(s, enemy_detector_client))
+
 while True:
-    t1.start()
-    t2.start()
     # try:
-    #     game_server.get_action(s, game_client)
+    game_server.get_action(s, game_client)
     # except:
-    #     pass
+        # pass
     # try:
-    #     EnemyDetectorServer.enemy_detect(s, enemy_detector_client)
+    EnemyDetectorServer.enemy_detect(s, enemy_detector_client)
     # except:
     #     pass
     # enemy_detector_server.start_enemy_detection_model(s, client)
