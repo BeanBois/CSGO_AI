@@ -83,9 +83,9 @@ class GameServer:
         cursor_location = ENEMY_SCREEN_DETECTOR.get_enemy_coords()
         print(cursor_location)
 
-        if action[8] == 1:
+        if action[8] == 1 and action[7] == 0:
             self.mouse_controller.move(10, 0)
-        if action[7] == 1:
+        if action[7] == 1 and action[8] == 0:
             self.mouse_controller.move(10, 0)
 
         # if enemy_screen_coords['body'] is not None:
@@ -290,11 +290,11 @@ class GameServer:
         # self.csgo_type_command(self.keyboard_controller, 'mp_random_spawn_los', '1') # random spawn for enemy bot to ensure that enemy bot not in sight of agent
         # self.csgo_type_command(self.keyboard_controller, 'bot_max_vision_distance_override', '1', '30') # random spawn for enemy bot, not agent
         # [0:4] 0 :EASIEST, 1: EASY, 2: NORMAL, 3: HARD, 4: HARDEST
-        self.csgo_type_command(
-            self.keyboard_controller, 'custom_bot_difficulty', '2')
-        # 1 [0:4] 0 :EASIEST, 1: EASY, 2: NORMAL, 3: HARD, 4: HARDEST
-        self.csgo_type_command(
-            self.keyboard_controller, 'bot_difficulty', '2')
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'custom_bot_difficulty', '2')
+        # # 1 [0:4] 0 :EASIEST, 1: EASY, 2: NORMAL, 3: HARD, 4: HARDEST
+        # self.csgo_type_command(
+        #     self.keyboard_controller, 'bot_difficulty', '2')
 
         # self.csgo_type_command(
         #     self.keyboard_controller, 'bot_add_ct', 'normal')  # number of bot

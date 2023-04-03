@@ -107,6 +107,8 @@ class EnemyScreenDetector:
     def _scan_for_enemy(self, image):
         try:
             image_processed = self._process_image(image)
+            if image_processed is None:
+                return self.enemy_screen_coords
             pred = self.model(image_processed, augment=False, visualize=False)[0]
             pred = general.non_max_suppression(pred, self.conf_thres, self.iou_thres, agnostic=False)
             aims = []
@@ -117,9 +119,9 @@ class EnemyScreenDetector:
                 if len(det):
                     det[:, :4] = general.scale_coords(image_processed.shape[2:], det[:, :4], image.shape).round()
 
-                    for c in det[:, -1].unique():
-                        n = (det[:, -1] == c).sum()
-                        s += f"{n} {names[int(c)]}{'s' * (n > 1)},"
+                    # for c in det[:, -1].unique():
+                    #     n = (det[:, -1] == c).sum()
+                    #     s += f"{n} {names[int(c)]}{'s' * (n > 1)},"
 
                     for *xyxy, conf, cls in reversed(det):
                         xywh = (general.xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
@@ -130,12 +132,10 @@ class EnemyScreenDetector:
                     
                     
                     
-                    
                     def _get_coords(x,y):
                         return self.x * float(x), self.y * float(y)
                     
                     #theres only 1 enemy player in the game (apart from the agent). As such this is possible
-                    
                     if len(aims) == 0:
                         self.enemy_screen_coords = {
                             'body' : (None, None),
@@ -167,8 +167,8 @@ class EnemyScreenDetector:
         # print(img0.shape)
         # imgo = img0.transpose((2, 0, 1))[::-1
         try:
-            img0 = img0.transpose((1,0,2))[::-1]
-            #resize error bc we did not read with cv2
+        # img0 = img0.transpose((1,0,2))[::-1]
+        #resize error bc we did not read with cv2
             img0 = cv2.resize(img0, (self.re_x, self.re_y))
 
             img = augmentations.letterbox(img0, self.imgsz, stride=self.stride)[0]
@@ -200,6 +200,7 @@ class EnemyDetectorServer:
     
     def enemy_detect(s, client):
         #receive the coordinates of the enemy on screen, and if enemy is present
+        print('detecting enemy')
         img = grabscreen.grab_screen(region=(0, 0, 1920, 1080)) #TODO: decide on region
         # print(img.shape)
         # cv2.imshow('window', img)
@@ -226,6 +227,7 @@ class EnemyDetectorServer:
         # data = json.dumps(data)
         data = json.dumps(data)
         s.sendto(data.encode('utf-8'), client)
+        print('sent data to client', client)
     
     def start_enemy_detection_model():
         
