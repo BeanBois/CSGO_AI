@@ -9,7 +9,7 @@ port = 5000
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.bind((host, port))
-s.settimeout(5)
+# s.settimeout(5)
 # s.setblocking(0)    
 game_client = ('192.168.1.109', 5005)
 enemy_detector_client = ('192.168.1.109', 6005)
