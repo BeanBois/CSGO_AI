@@ -13,6 +13,7 @@ import torch
 import win32gui
 import win32con
 
+import json
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
@@ -70,25 +71,38 @@ class EnemyScreenDetector:
         self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
         self.held_image = None
         self.timer = 0
-        self.enemy_screen_coords = {}
     
+        self.enemy_screen_coords = {'body' : (None, None), 'head' : (None, None)}
     
+    def get_enemy_coords(self):
+        if self.enemy_screen_coords is None:
+            return None
+        else:
+            if self.enemy_screen_coords['head'] != (None,None):
+                return self.enemy_screen_coords['head']
+            elif self.enemy_screen_coords['body'] != (None,None):
+                return self.enemy_screen_coords['body']
+            else:
+                return None
+
     #returns the x,y coordinates of the enemy
     # return (None,None) if no enemy detected
     def scan_for_enemy(self, image):
-        if self.held_image is None:
-            self.held_image = image
-        tmp = image
-        sim_norm = cv2.matchTemplate(tmp, self.held_image, cv2.TM_CCOEFF_NORMED)
-        # a,b,c = tmp.shape
-        # tmp.resize((a,c,b))
-        # sim = sum(sum(sum(np.asarray(tmp) @ np.asarray(self.held_image))))
-        # sim_norm = sim/(np.linalg.norm(tmp)*np.linalg.norm(self.held_image))
-        if sim_norm <= 0.9:
-            self.held_image = image #update the held image
-            return self._scan_for_enemy(image)
-        else:
-            return self.enemy_screen_coords
+        # self.held_image = image
+        return self._scan_for_enemy(image)
+        # if self.held_image is None:
+        #     self.held_image = image
+        # tmp = image
+        # sim_norm = cv2.matchTemplate(tmp, self.held_image, cv2.TM_CCOEFF_NORMED)
+        # # a,b,c = tmp.shape
+        # # tmp.resize((a,c,b))
+        # # sim = sum(sum(sum(np.asarray(tmp) @ np.asarray(self.held_image))))
+        # # sim_norm = sim/(np.linalg.norm(tmp)*np.linalg.norm(self.held_image))
+        # if sim_norm <= 0.95:
+        #     self.held_image = image #update the held image
+        #     return self._scan_for_enemy(image)
+        # else:
+        #     return self.enemy_screen_coords
 
     def _scan_for_enemy(self, image):
         try:
@@ -154,6 +168,7 @@ class EnemyScreenDetector:
         # imgo = img0.transpose((2, 0, 1))[::-1
         try:
             img0 = img0.transpose((1,0,2))[::-1]
+            #resize error bc we did not read with cv2
             img0 = cv2.resize(img0, (self.re_x, self.re_y))
 
             img = augmentations.letterbox(img0, self.imgsz, stride=self.stride)[0]
@@ -169,6 +184,7 @@ class EnemyScreenDetector:
             return img
         except Exception as e:
             print(e)
+            print('error in _process_image')
             return None
 
 ENEMY_SCREEN_DETECTOR = EnemyScreenDetector()
@@ -200,15 +216,15 @@ class EnemyDetectorServer:
         if enemy_on_radar:
             enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
             if enemy_screen_coords is not None:
-                data = {"enemy_on_screen" : "1", "enemy_screen_coords" : enemy_screen_coords}
+                data = {"enemy_on_radar" : "1", "enemy_screen_coords" : enemy_screen_coords}
             else:
-                data = {"enemy_on_screen" : "1", "enemy_screen_coords" : "null"}           
+                data = {"enemy_on_radar" : "1", "enemy_screen_coords" : "null"}           
         else:
-            data = {"enemy_on_screen" : "null", "enemy_screen_coords" : "null"}
+            data = {"enemy_on_radar" : "0", "enemy_screen_coords" : "null"}
         #then process the data from client, specifically
         #see if the enemy is present, and if so, get the coordinates of the enemy
         # data = json.dumps(data)
-        data = str(data)
+        data = json.dumps(data)
         s.sendto(data.encode('utf-8'), client)
     
     def start_enemy_detection_model():
@@ -242,15 +258,15 @@ class EnemyDetectorServer:
             if enemy_on_radar:
                 enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
                 if enemy_screen_coords is not None:
-                    data = {"enemy_on_screen" : "1", "enemy_screen_coords" : enemy_screen_coords}
+                    data = {"enemy_on_radar" : "1", "enemy_screen_coords" : enemy_screen_coords}
                 else:
-                    data = {"enemy_on_screen" : "1", "enemy_screen_coords" : "null"}           
+                    data = {"enemy_on_radar" : "1", "enemy_screen_coords" : "null"}           
             else:
-                data = {"enemy_on_screen" : "null", "enemy_screen_coords" : "null"}
+                data = {"enemy_on_radar" : "0", "enemy_screen_coords" : "null"}
             #then process the data from client, specifically
             #see if the enemy is present, and if so, get the coordinates of the enemy
             # data = json.dumps(data)
-            data = str(data)
+            data = json.dumps(data)
             s.sendto(data.encode('utf-8'), client)
         
         # s.close()
