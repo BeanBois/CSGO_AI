@@ -47,6 +47,8 @@ class GameServer:
             self.start_game(words[1])
         elif action == 'endround':
             self.endround()
+        elif action is None:
+            pass
         else:
             action = [int(i) for i in data['action'].split(',')]
             if not done:
