@@ -36,3 +36,7 @@ class EnemyDetectorClient:
         s.close()
 
         return data
+
+if __name__ == '__main__':
+    info = EnemyDetectorClient.get_enemy_info()
+    print(info)

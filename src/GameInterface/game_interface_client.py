@@ -30,3 +30,5 @@ class GameClient:
         s.close()
         # data, addr = s.recvfrom(1024)
 
+# if __name__ == "__main__":
+    # GameClient.send_action

@@ -45,6 +45,8 @@ class GameServer:
         elif action.startswith("restart"):
             words = action.split()
             self.start_game(words[1])
+        elif action == 'endround':
+            self.endround()
         else:
             action = [int(i) for i in data['action'].split(',')]
             if not done:
@@ -56,6 +58,18 @@ class GameServer:
         return
 
 
+    def endround(self):
+        self.reset_controllers()
+        self.keyboard_controller.press('`')
+        time.sleep(0.1)
+        self.keyboard_controller.release('`')
+        
+        self.csgo_type_command('endround')
+        
+        self.keyboard_controller.press('`')
+        time.sleep(0.1)
+        self.keyboard_controller.release('`')
+    
     def _apply_action(self, action):
         shift_pressed = True if action[1] == 1 else False
         ctrl_pressed = True if action[2] == 1 else False

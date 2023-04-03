@@ -171,8 +171,7 @@ class CSGO_Env_Utils:
         return [goal1, goal2]
 
     def goal_domain():
-        
-        return 1
+        return Box(low=0, high=2, shape=(1,), dtype=np.int32)
         
         return spaces.Box(low=0, high=2, shape=(1,), dtype=np.int32)
 class CSGO_Env(gym.Env):
@@ -722,9 +721,12 @@ class CSGO_Env(gym.Env):
         self._goal_state = None
         self._partial_goal_state = None
         #wait until the game is live
-        round_info = client.get_info("round")
-        while round_info['phase'] != 'live':
-            round_info = client.get_info("round")
+        # round_info = client.get_info("round")
+        # while round_info['phase'] != 'live':
+        #     round_info = client.get_info("round")
+        
+        GameClient.send_action("endround")
+        
         agent_info = client.get_info("player")
         while agent_info['name'] != NAME_OF_AGENT:
             client.get_info("switch spectator target")
