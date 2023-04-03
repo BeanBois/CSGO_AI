@@ -25,16 +25,19 @@ enemy_detector_client = ('192.168.1.109', 6005)
 
 game_server = GameServer()
 # enemy_detector_server = EnemyDetectorServer()
-
+t1 = th.Thread(target=game_server.get_action, args=(s, game_client))
+t2 = th.Thread(target=EnemyDetectorServer.enemy_detect, args=(s, enemy_detector_client))
 while True:
-    try:
-        game_server.get_action(s, game_client)
-    except:
-        pass
-    try:
-        EnemyDetectorServer.enemy_detect(s, enemy_detector_client)
-    except:
-        pass
+    t1.start()
+    t2.start()
+    # try:
+    #     game_server.get_action(s, game_client)
+    # except:
+    #     pass
+    # try:
+    #     EnemyDetectorServer.enemy_detect(s, enemy_detector_client)
+    # except:
+    #     pass
     # enemy_detector_server.start_enemy_detection_model(s, client)
 # thread1 = th.Thread(target=game_server.get_action, args=(s, client)
 # thread2 = th.Thread(target=EnemyDetectorServer.start_enemy_detection_model, args=(s, client)
