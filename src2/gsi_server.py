@@ -37,6 +37,8 @@ class server:
                 # print("From connected user: " + data)
                 if data == "switch spectator target":
                     server.MouseController.click(Button.left, 1)
+                    data = "done"
+                    s.sendto(data.encode('utf-8'), addr)
                     continue
                 data = GSI_SERVER_TRAINING.get_info(data)
                 print(data)
