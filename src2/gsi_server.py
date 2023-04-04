@@ -7,6 +7,7 @@ import socket
 import re
 import json
 import pandas as pd
+from pynput.mouse import Controller, Button
 class server:
     MouseController = Controller()
     def start_csgo_gsi_server():
