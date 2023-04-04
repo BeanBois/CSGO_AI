@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 
-=======
-# 
->>>>>>> 4813d65d388aa2d53ad3850b290bf48e446549ff
 # import information
 from . import information
 

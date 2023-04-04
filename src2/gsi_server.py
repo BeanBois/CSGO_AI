@@ -7,7 +7,6 @@ import socket
 import re
 import json
 import pandas as pd
-from pynput.mouse import Controller, Button
 class server:
     MouseController = Controller()
     def start_csgo_gsi_server():
@@ -20,7 +19,6 @@ class server:
         
         # host = '127.0.0.1'
         port = 4000
-        
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.bind((host, port))
 
@@ -29,6 +27,8 @@ class server:
             #receive key
             data, addr = s.recvfrom(1024)
             
+            
+
             if data is not None:
                 data = data.decode('utf-8')
                 print(data)
