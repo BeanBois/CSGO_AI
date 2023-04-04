@@ -1,18 +1,21 @@
 
 import socket
 import time
+import json
 class GameClient:
 
     def send_action(action, done=False):
         port = 5005
         host = '192.168.1.109'
         server = ('192.168.1.241', 5000)
-        buffer = (host, port)
+        # buffer = (host, port)
         
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.bind((host, port))
+        # action = re.sub(r"None", "\"null\"", action)
         data = {'action' : action, 'done' : "1" if done else ""}
-        data = str(data)
+        # data = str(data)
+        data = json.dumps(data)
         s.sendto(data.encode('utf-8'), server)
         data = s.recv(1024)
         data = data.decode('utf-8')

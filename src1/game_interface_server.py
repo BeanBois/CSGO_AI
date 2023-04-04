@@ -82,15 +82,13 @@ class GameServer:
         movement_button = None
         left_click = True if action[4] == 1 else False
         # enemy_screen_coords = self._obs['enemy_coords_on_screen']
-        cursor_location = None
-        cursor_location = ENEMY_SCREEN_DETECTOR.get_enemy_coords()
-        print(cursor_location)
+        cursor_location = (action[11], action[12])
 
         if left_click:
-            # if cursor_location is not None or cursor_location is not (None,None):
-            if cursor_location is not None:
-                if cursor_location[0] is not None and cursor_location[1] is not None:
-                    self.mouse_controller.position = cursor_location
+            
+            #if there is a target to aim at
+            if cursor_location[0] is not None and cursor_location[1] is not None:
+                self.mouse_controller.position = cursor_location
                 # curr_cursor_position = self.mouse_controller.position
                 # self.mouse_controller.move(
                 #     cursor_location[0] - curr_cursor_position[0], cursor_location[1] - curr_cursor_position[1])
@@ -122,8 +120,9 @@ class GameServer:
         #keyboard action allowed is implied by movement_button not being None
         if movement_button is not None:
             # list_of_keys = ['w', 'a', 's', 'd'] - [movement_button]
-            list_of_keys = ['w', 'a', 's', 'd'].remove(movement_button)
-            if list_of_keys is not None:
+            list_of_keys = ['w', 'a', 's', 'd']
+            list_of_keys.remove(movement_button)
+            if len(list_of_keys) > 0:
                 for key in list_of_keys:
                     self.keyboard_controller.release(key)
             # self.keyboard_controller.release(*list_of_keys)

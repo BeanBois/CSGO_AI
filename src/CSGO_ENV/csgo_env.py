@@ -18,6 +18,7 @@ from pynput.mouse import Button
 from pynput.keyboard import Key
 import time
 from gym.spaces.utils import flatdim
+import re 
 
 TRAINING = True
 
@@ -72,6 +73,9 @@ class CSGO_Env_Utils:
             #10 means move the cursor to the up, 01 means move the cursor to the down. both by 5px
             Discrete(1),
             Discrete(1),
+            
+            #these 2 shows the coordinate to aim at, if any
+            Box(low=np.array([0, 0]), high=np.array([SCREEN_HEIGHT, SCREEN_WIDTH]), dtype=np.int32),
             
         ])
 
@@ -474,8 +478,13 @@ class CSGO_Env(gym.Env):
             # sleep to run through the timed thread
             action = list(action)
             action = [str(x.item()) for x in action]
+            if self._obs is not None:
+                action.append(str(self._obs['enemy']['enemy_screen_coords'][0]))
+                action.append(str(self._obs['enemy']['enemy_screen_coords'][1]))
+            else:
+                action.append(str(None))
+                action.append(str(None))
             action = ','.join(action)
-            
             GameClient.send_action(action, done)
             time.sleep(self.ACTION_TIME)
     # TODO: Change datatype
@@ -502,9 +511,9 @@ class CSGO_Env(gym.Env):
         if agent_weapon is not None:
             agent_bullets = int(agent_weapon['ammo_clip']) if "ammo_clip" in agent_weapon.keys() else 0
             
-        enemy_screen_coord = information['enemy_screen_coords'].get('head', None)
+        enemy_screen_coord = information['enemy_screen_coords'].get('head', (None, None))
         if enemy_screen_coord[0] is None and enemy_screen_coord[1] is None:
-            enemy_screen_coord = information['enemy_screen_coords'].get('body', None)
+            enemy_screen_coord = information['enemy_screen_coords'].get('body', (None, None))
         print('enemy_screen_coord', enemy_screen_coord)
         match_result = 0
         # if "bomb" in round_info.keys():
