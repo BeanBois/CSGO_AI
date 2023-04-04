@@ -86,15 +86,29 @@ class GameServer:
         cursor_location = ENEMY_SCREEN_DETECTOR.get_enemy_coords()
         print(cursor_location)
 
-        if action[8] == 1 and action[7] == 0:
-            self.mouse_controller.move(10, 0)
-        if action[7] == 1 and action[8] == 0:
-            self.mouse_controller.move(10, 0)
+        if left_click:
+            # if cursor_location is not None or cursor_location is not (None,None):
+            if cursor_location is not None:
+                if cursor_location[0] is not None and cursor_location[1] is not None:
+                    self.mouse_controller.position = cursor_location
+                # curr_cursor_position = self.mouse_controller.position
+                # self.mouse_controller.move(
+                #     cursor_location[0] - curr_cursor_position[0], cursor_location[1] - curr_cursor_position[1])
+            self.mouse_controller.click(Button.left,1)
+            # self.mouse_controller.release(Button.left)
 
-        # if enemy_screen_coords['body'] is not None:
-        #     cursor_location = enemy_screen_coords['body']
-        # elif enemy_screen_coords['head'] is not None:
-        #     cursor_location = enemy_screen_coords['head']
+        #Action to control the mouse
+        if action[8] == 1 and action[7] == 0:
+            self.mouse_controller.move(-5, 0)
+        if action[7] == 1 and action[8] == 0:
+            self.mouse_controller.move(5, 0)
+        if action[10] == 1 and action[9] == 0:
+            self.mouse_controller.move(0, 5)
+        if action[9] == 1 and action[10] == 0:
+            self.mouse_controller.move(0, -5)    
+
+        # we only set movement action if action[0] == 0
+        # this is so as we prevent any keyboard-related inputs when action[0] == 1
         if action[0] == 0:
             if action[5] == 0 and action[6] == 0:
                 movement_button = 'w'
@@ -105,6 +119,7 @@ class GameServer:
             elif action[5] == 1 and action[6] == 1:
                 movement_button = 'd'
 
+        #keyboard action allowed is implied by movement_button not being None
         if movement_button is not None:
             # list_of_keys = ['w', 'a', 's', 'd'] - [movement_button]
             list_of_keys = ['w', 'a', 's', 'd'].remove(movement_button)
@@ -155,6 +170,7 @@ class GameServer:
                     # Key.shift, Key.ctrl, Key.space, *list_of_keys)
                 self.keyboard_controller.press(movement_button)
 
+        #keyboard action not allowed is implied by movement_button being None
         else:
             list_of_keys = ['w', 'a', 's', 'd']
             for key in list_of_keys:
@@ -173,19 +189,10 @@ class GameServer:
             else:
                 self.keyboard_controller.release(Key.space)
 
-        if left_click:
-            # if cursor_location is not None or cursor_location is not (None,None):
-            if cursor_location is not None:
-                if cursor_location[0] is not None and cursor_location[1] is not None:
-                    self.mouse_controller.position = cursor_location
-                # curr_cursor_position = self.mouse_controller.position
-                # self.mouse_controller.move(
-                #     cursor_location[0] - curr_cursor_position[0], cursor_location[1] - curr_cursor_position[1])
-            self.mouse_controller.click(Button.left)
-            self.mouse_controller.release(Button.left)
+
 
         # sleep to run through the timed thread
-        time.sleep(self.ACTION_TIME)
+        # time.sleep(self.ACTION_TIME)
     # TODO: Change datatype
     # DONE, TODO: Check
     

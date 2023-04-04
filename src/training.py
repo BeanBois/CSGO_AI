@@ -95,6 +95,7 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_of_
 
                         obs, p_obs, reward, done, goal, p_goal = env.reset()
                         agent.reset(obs, p_obs, goal, p_goal)
+                        break
             # Train.
             epoch_actor_losses = []
             epoch_critic_losses = []

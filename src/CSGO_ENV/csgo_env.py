@@ -55,14 +55,24 @@ class CSGO_Env_Utils:
             Discrete(1),
             # space pressed? #jumping basically, space pressed == jumping, else standing
             Discrete(1),
+            
             Discrete(1),  # fire? #fire == 1, else 0 #left mouse click
             # # 0 for no button pressed, 1 for 'w', 2 for 'a', 3 for 's', 4 for 'd',
             # Discrete(5),
             #  0 for 'w', 1 for 'a', 2 for 's', 3 for 'd', <Binary Numbers>
             Discrete(1), 
             Discrete(1), 
-            Discrete(1), #1 means move mouse cursor to right by 5, 0 means no movement
-            Discrete(1), #1 means move mouse cursor to left by 5 0 means no movement
+            
+            #these 2 are a pair of action
+            #10 means move the cursor to the left, 01 means move the cursor to the right. both by 5px
+            Discrete(1), 
+            Discrete(1), 
+            
+            #these 2 are a pair of action
+            #10 means move the cursor to the up, 01 means move the cursor to the down. both by 5px
+            Discrete(1),
+            Discrete(1),
+            
         ])
 
     def observation_space_domain(max_x, min_x, max_y, min_y, max_z, min_z, SCREEN_HEIGHT, SCREEN_WIDTH):
@@ -242,24 +252,10 @@ class CSGO_Env(gym.Env):
     # each step corresponds to 0.1 seconds (OBSERVING_TIME or ACTION_TIME)
     def step(self, action):
         
-
-        # get round information
-        # round_info = client.get_info("round")
-        # match_result = 0
-        # if "bomb" in round_info.keys():
-        #     bomb_state = round_info['bomb']
-
-        #     if bomb_state == 'exploded':
-        #         match_result = 1 # bomb exploded, Terrorist win
-                
-        #     elif bomb_state == 'defused':
-        #         match_result = 2 # bomb defused, Counter Terrorist win
-        # observing_thread_2 = th.Timer(CSGO_Env.OBSERVING_TIME, self._get_full_state, args = (lock,))
-        
-        # action_thread = th.Timer(CSGO_Env.ACTION_TIME,
-        #                          self._apply_action, args=(action, (match_result>0)))
-
-        self._apply_action(action, (self._is_done()))
+        agent_dead = Fa
+        if self._obs['player']['health'] <= 0:
+            agent_dead = True
+        self._apply_action(action, (self._is_done() or agent_dead))
 
     
         #get state should be called after action is applied to get the next state
@@ -269,6 +265,8 @@ class CSGO_Env(gym.Env):
         information['round'] = client.get_info("round")
         information['allplayers'] = client.get_info("allplayers")
         information['bomb'] = client.get_info("bomb")
+        
+        #check if player is right
         
         prev_observation = self._obs
         prev_part_observation = self._part_obs
@@ -509,8 +507,10 @@ class CSGO_Env(gym.Env):
             enemy_screen_coord = information['enemy_screen_coords'].get('body', None)
         print('enemy_screen_coord', enemy_screen_coord)
         match_result = 0
-        if "bomb" in round_info.keys():
-            bomb_state = round_info['bomb']
+        # if "bomb" in round_info.keys():
+        if "state" in bomb.keys():
+            # bomb_state = round_info['bomb']
+            bomb_state = bomb['state']
             if bomb_state == 'exploded':
             # if bomb_state == 'exploded' or int(enemy['state']['health']) <= 0:
                 match_result = 1 # bomb exploded or , Terrorist win
