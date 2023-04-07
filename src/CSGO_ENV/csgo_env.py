@@ -393,7 +393,7 @@ class CSGO_Env(gym.Env):
             return reward
         # if game ongoing
         else:
-            return 0.005
+            return 0.001
         #     cost = 0
         #     reward = 0
         #     # check if bomb is being defused

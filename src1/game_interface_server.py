@@ -80,12 +80,11 @@ class GameServer:
         ctrl_pressed = True if action[2] == 1 else False
         spacebar_pressed = True if action[3] == 1 else False
         movement_button = None
-        left_click = True if action[4] == 1 else False
+        left_click = True if action[10] == 1 else False
         # enemy_screen_coords = self._obs['enemy_coords_on_screen']
         cursor_location = (action[11], action[12])
 
         if left_click:
-            
             #if there is a target to aim at
             if cursor_location[0] is not None and cursor_location[1] is not None:
                 self.mouse_controller.position = cursor_location
@@ -96,25 +95,25 @@ class GameServer:
             # self.mouse_controller.release(Button.left)
 
         #Action to control the mouse
-        if action[8] == 1 and action[7] == 0:
+        if action[7] == 1 and action[6] == 0:
             self.mouse_controller.move(-5, 0)
-        if action[7] == 1 and action[8] == 0:
+        if action[6] == 1 and action[7] == 0:
             self.mouse_controller.move(5, 0)
-        if action[10] == 1 and action[9] == 0:
+        if action[9] == 1 and action[8] == 0:
             self.mouse_controller.move(0, 5)
-        if action[9] == 1 and action[10] == 0:
+        if action[8] == 1 and action[9] == 0:
             self.mouse_controller.move(0, -5)    
 
         # we only set movement action if action[0] == 0
         # this is so as we prevent any keyboard-related inputs when action[0] == 1
         if action[0] == 0:
-            if action[5] == 0 and action[6] == 0:
+            if action[4] == 0 and action[5] == 0:
                 movement_button = 'w'
-            elif action[5] == 1 and action[6] == 0:
+            elif action[4] == 1 and action[5] == 0:
                 movement_button = 'a'
-            elif action[5] == 0 and action[6] == 1:
+            elif action[4] == 0 and action[5] == 1:
                 movement_button = 's'
-            elif action[5] == 1 and action[6] == 1:
+            elif action[4] == 1 and action[5] == 1:
                 movement_button = 'd'
 
         #keyboard action allowed is implied by movement_button not being None
