@@ -88,11 +88,11 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 500, nb_of
             epoch_critic_losses = np.array(epoch_critic_losses)
             np.save(f'{EVALUATION_STATS_SAVE_FILEPATH}epoch_{epoch}_epoch_cycle_{epoch_cycle}_actor_losses.npy', epoch_actor_losses)
             np.save(f'{EVALUATION_STATS_SAVE_FILEPATH}epoch_{epoch}_epoch_cycle_{epoch_cycle}_critic_losses.npy', epoch_critic_losses)
-        
+            agent.save_model()
         np.save(f'{TRAINING_STATS_SAVE_FILEPATH}epoch_{epoch}_avg_reward.npy', np.array(avg_reward_in_epoch))
         np.save(f'{TRAINING_STATS_SAVE_FILEPATH}epoch_{epoch}_avg_winrate.npy', np.array(avg_winrate_in_epoch))    
 
-def train2(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 500, nb_of_rounds = 10, eval_env=None):
+def train1(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 500, nb_of_rounds = 10, eval_env=None):
     # rank = MPI.COMM_WORLD.Get_rank()
 
     print("start training")
