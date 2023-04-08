@@ -256,9 +256,9 @@ class CSGO_Env(gym.Env):
     # each step corresponds to 0.1 seconds (OBSERVING_TIME or ACTION_TIME)
     def step(self, action):
         
-        agent_dead = Fa
-        if self._obs['player']['health'] <= 0:
-            agent_dead = True
+        agent_dead = False
+        if self._obs is not None and self._obs['agent']['health'] <= 0:
+                agent_dead = True
         self._apply_action(action, (self._is_done() or agent_dead))
 
     

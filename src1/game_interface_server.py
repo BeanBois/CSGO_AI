@@ -53,7 +53,7 @@ class GameServer:
             elif action is None:
                 pass
             else:
-                action = [int(i) for i in data['action'].split(',')]
+                action = [int(float(i)) for i in data['action'].split(',')]
                 if not done:
                     self._apply_action(action)
             print('action applied')
