@@ -4,7 +4,7 @@ from collections import deque
 import pickle
 
 import pandas as pd
-# from baselines.ddpg.ddpg import DDPG
+# from baselinesaddpg.ddpg import DDPG
 from AgentModel.agent import DDPG
 # from AgentModel.util import mpi_mean, mpi_std, mpi_max, mpi_sum
 import torch
@@ -40,10 +40,13 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 500, nb_of
             cum_reward_in_epoch_cycle = 0
             rounds_won = 0
             for round in range(nb_of_rounds):
+                obs, p_obs, reward, done, goal, p_goal = env.reset()
+                agent.reset(obs, p_obs, goal, p_goal)
                 #init data structure here to collect data for each round
                 round_winner = None
                 episode_reward = 0
                 episode_step = 0
+                t=0
                 while True:
                     print("round number : ", round)
                     action, q = None, 0
@@ -67,14 +70,15 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 500, nb_of
                         if obs['winner'] == 1:
                             rounds_won += 1
                         
-                        obs, p_obs, reward, done, goal, p_goal = env.reset()
-                        agent.reset(obs, p_obs, goal, p_goal)
+
                         break
             
             #collecting data
             avg_reward_in_epoch.append(cum_reward_in_epoch_cycle/nb_of_rounds)
             avg_winrate_in_epoch.append(rounds_won/nb_of_rounds)
             
+            #pause game here if you wanna
+            env.pause_game()
             #init data structure here to collectn data foreach evaluation in epoch cycle
             epoch_actor_losses = []
             epoch_critic_losses = []
@@ -88,7 +92,7 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 500, nb_of
             epoch_critic_losses = np.array(epoch_critic_losses)
             np.save(f'{EVALUATION_STATS_SAVE_FILEPATH}epoch_{epoch}_epoch_cycle_{epoch_cycle}_actor_losses.npy', epoch_actor_losses)
             np.save(f'{EVALUATION_STATS_SAVE_FILEPATH}epoch_{epoch}_epoch_cycle_{epoch_cycle}_critic_losses.npy', epoch_critic_losses)
-            agent.save_model()
+            agent.save_model(epoch_num=epoch, epoch_cycle_num=epoch_cycle)
         np.save(f'{TRAINING_STATS_SAVE_FILEPATH}epoch_{epoch}_avg_reward.npy', np.array(avg_reward_in_epoch))
         np.save(f'{TRAINING_STATS_SAVE_FILEPATH}epoch_{epoch}_avg_winrate.npy', np.array(avg_winrate_in_epoch))    
 
@@ -402,3 +406,5 @@ def train2(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 50, nb_ro
         #     if eval_env and hasattr(eval_env, 'get_state'):
         #         with open(os.path.join(logdir, 'eval_env_state.pkl'), 'wb') as f:
         #             pickle.dump(eval_env.get_state(), f)
+'1.35354004e+03  2.30451001e+03  1.00600004e+01 -9.99999978e-03 1.00000000e+00 -9.99999978e-03  2.50000000e+01  1.00000000e+02 9.54003840e+02  3.37187880e+02  1.00084998e+03  2.34372998e+03 1.21559998e+02  9.70000029e-01  2.39999995e-01 -2.99999993e-02 1.00000000e+00  0.00000000e+00  0.00000000e+00  1.23241003e+03 2.34803003e+03  9.85000000e+01  0.00000000e+00  2.50000000e+01 2.50000000e+01  0.00000000e+00'
+        

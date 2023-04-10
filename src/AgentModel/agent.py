@@ -15,6 +15,7 @@ from gym.spaces.utils import flatdim
 
 CONFIDENCE = 0.7
 
+criterion = nn.MSELoss()
 def flatten_location(location,DIMENSIONS):
     x_min, x_max, y_min, y_max, z_min, z_max = DIMENSIONS
     x_axis = np.zeros(x_max-x_min)
@@ -34,7 +35,7 @@ def flatten_p_obs(obs):
     enemy_forw = enemy_pos['forward'] if enemy_pos['forward'] is not None else  np.array([np.nan,np.nan,np.nan])
     enemy_time_seen = enemy_pos['time_seen'] if enemy_pos['time_seen'] is not None else np.nan
     enemy_health = obs['enemy']['health'] if obs['enemy']['health'] is not None else 100
-    enemy_coor_on_screen = obs['enemy']['enemy_screen_coords'] if obs['enemy']['enemy_screen_coords'] is not None else  np.array([np.nan,np.nan])
+    enemy_coor_on_screen = obs['enemy']['enemy_screen_coords'] if obs['enemy']['enemy_screen_coords'][0] is not None else  np.array([np.nan,np.nan])
     
     agent_pos = obs['agent']['position']
     agent_loc = agent_pos['location']
@@ -52,7 +53,7 @@ def flatten_p_obs(obs):
     curr_time = obs['current_time'] if obs['current_time'] > 0 else 0
     winner = obs['winner']
     arr = np.concatenate((enemy_loc, enemy_forw, enemy_time_seen, enemy_health, enemy_coor_on_screen, agent_loc, agent_forw, agent_gun, agent_bullets, agent_health, bomb_location, bomb_defusing, time_of_info, curr_time, winner), axis=None)
-    arr.flatten()
+    arr=arr.flatten()
     print(arr)
     return arr
 
@@ -62,7 +63,7 @@ def flatten_obs(p_obs):
     enemy_forw = enemy_pos['forward']
     enemy_time_seen = enemy_pos['time_seen']
     enemy_health = p_obs['enemy']['health']
-    enemy_coor_on_screen = p_obs['enemy']['enemy_screen_coords']
+    enemy_coor_on_screen = p_obs['enemy']['enemy_screen_coords'] if p_obs['enemy']['enemy_screen_coords'][0] is not None else  np.array([np.nan,np.nan])
     
     agent_pos = p_obs['agent']['position']
     agent_loc = agent_pos['location']
@@ -77,13 +78,13 @@ def flatten_obs(p_obs):
     curr_time = p_obs['current_time'] if p_obs['current_time'] > 0 else 0
     winner = p_obs['winner']
     arr = np.concatenate((enemy_loc, enemy_forw, enemy_time_seen, enemy_health, enemy_coor_on_screen, agent_loc, agent_forw, agent_gun, agent_bullets, agent_health, bomb_location, bomb_defusing, time_of_info, curr_time, winner), axis=None)
-    arr.flatten()
+    arr = arr.flatten()
     print(arr)
     return arr
 
 def flatten_goal(goal):
     arr = np.array(goal)
-    arr.flatten()
+    arr = arr.flatten()
     return arr
 
 
@@ -102,10 +103,23 @@ class ReplayBuffer:
     def sample(self, batch_size):
         # state_batch, p_state_batch, action_batch, reward_batch, next_state_batch, next_p_state_batch, goal_batch, p_goal_batch, done_batch = zip(*random.sample(self.buffer, batch_size))
         state_batch, p_state_batch, action_batch, reward_batch, next_state_batch, next_p_state_batch, goal_batch, p_goal_batch, done_batch = np.transpose(random.sample(self.buffer, batch_size))
-        return torch.tensor(state_batch), torch.to_tensor(p_state_batch), \
-                torch.tensor(action_batch), torch.tensor(reward_batch).unsqueeze(1), \
-                torch.tensor(next_state_batch), torch.to_tensor(next_p_state_batch),\
-                torch.to_tensor(goal_batch), torch.to_tensor(p_goal_batch), torch.tensor(done_batch).unsqueeze(1)
+        # state_batch = np.array([i for i in state_batch])
+        # p_state_batch = np.array([i.astype('float') for i in p_state_batch])
+        # action_batch = np.array([i for i in action_batch])
+        # reward_batch = np.array([i for i in reward_batch])
+        # next_state_batch = np.array([i for i in next_state_batch])
+        # next_p_state_batch = np.array([i for i in next_p_state_batch])
+        # goal_batch = np.array([i for i in goal_batch])
+        # p_goal_batch = np.array([i for i in p_goal_batch])
+        # done_batch = np.array([i for i in done_batch])
+        return state_batch, p_state_batch, \
+                action_batch, reward_batch, \
+                next_state_batch, next_p_state_batch,\
+                goal_batch, p_goal_batch, done_batch
+        # return torch.tensor(state_batch), torch.to_tensor(p_state_batch), \
+        #         torch.tensor(action_batch), torch.tensor(reward_batch).unsqueeze(1), \
+        #         torch.tensor(next_state_batch), torch.to_tensor(next_p_state_batch),\
+        #         torch.to_tensor(goal_batch), torch.to_tensor(p_goal_batch), torch.tensor(done_batch).unsqueeze(1)
 
 class Critic(nn.Module):
     def __init__(self, state_dim, action_dim, goal_dim):
@@ -114,10 +128,13 @@ class Critic(nn.Module):
         self.fc2 = nn.Linear(512, 512)
         self.fc3 = nn.Linear(512, 512)
         self.fc4 = nn.Linear(512, 1)
-        self.relu = nn.ReLU()
+        # self.relu = nn.ReLU()
+        self.relu = torch.nn.functional.relu
 
     def forward(self, state, action, goal):
-        x = torch.cat([state, action, goal], dim=1)
+        x = torch.cat((state.flatten(), action.flatten(), goal.flatten()), dim=0)
+        # x = np.concatenate((state.flatten(), action.flatten(), goal.flatten()), axis=None)
+        # x = torch.from_numpy(x).float()
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         x = self.relu(self.fc3(x))
@@ -131,16 +148,18 @@ class Actor(nn.Module):
         self.fc1 = nn.Linear(flatdim(state_dim) + flatdim(goal_dim), 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc3 = nn.Linear(512, 512)
-        self.fc4 = nn.Linear(512, flatdim(action_dim)) # action_dim = 9
-        self.relu = nn.ReLU()
+        self.fc4 = nn.Linear(512, flatdim(action_dim)) # action_dim = 10
+        # self.relu = nn.ReLU()
+        self.relu = torch.nn.functional.relu
+        
         # self.tanh = nn.Tanh()
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, state, goal):
-        x = torch.cat([state, goal], dim=0)
-        print('goal shape', goal.shape)
-        print('state shape', state.shape)
-        print(x.shape)
+        x = torch.cat((state.flatten(), goal.flatten()), dim=0)
+        # x= np.concatenate((state.flatten(), goal.flatten()), axis=None)
+        # x = torch.from_numpy(x).float()
+        
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         x = self.relu(self.fc3(x))
@@ -165,7 +184,7 @@ class DDPG:
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=0.001)
 
         self.replay_buffer = deque(maxlen=105)
-        self.discount_factor = 0.98
+        self.discount = 0.98
         self.tau = 0.98
         self.batch_size = 128
         self.horizon = 50
@@ -194,44 +213,48 @@ class DDPG:
         state_batch, p_state_batch ,action_batch,\
         reward_batch, next_state_batch, next_p_state_batch,\
         goal_batch, p_goal_batch , terminal_batch = self.memory.sample(self.batch_size)
-
+        pl = 0
+        vl = 0
+        for i in range(self.batch_size):
         # Prepare for the target q batch
-        next_q_values = self.target_critic([
-            to_tensor(next_state_batch, volatile=True),
-            self.target_actor(to_tensor(next_p_state_batch, volatile=True), to_tensor(p_goal_batch), volatile=True),
-            to_tensor(goal_batch, volatile=True),
-        ])
-        next_q_values.volatile=False
+            next_q_values = self.target_critic(
+                to_tensor(next_state_batch[i], volatile=True),
+                self.target_actor(to_tensor(next_p_state_batch[i], volatile=True), to_tensor(p_goal_batch[i], volatile=True)),
+                to_tensor(goal_batch[i], volatile=True),
+            )
+            next_q_values.volatile=False
 
-        target_q_batch = to_tensor(reward_batch) + \
-            self.discount*to_tensor(terminal_batch.astype(np.float))*next_q_values
+            target_q_batch = torch.tensor(reward_batch[i]) + \
+                self.discount*torch.tensor(int(terminal_batch[i]))*next_q_values
 
-        # Critic update
-        self.critic.zero_grad()
+            # Critic update
+            self.critic.zero_grad()
 
-        q_batch = self.critic([ to_tensor(state_batch), to_tensor(action_batch), to_tensor(goal_batch) ])
-        
-        value_loss = criterion(q_batch, target_q_batch)
-        value_loss.backward()
-        self.critic_optim.step()
+            q_batch = self.critic( to_tensor(state_batch[i]), torch.tensor(action_batch[i]), to_tensor(goal_batch[i]) )
+            
+            value_loss = criterion(q_batch, target_q_batch)
+            value_loss.backward()
+            self.critic_optimizer.step()
 
-        # Actor update
-        self.actor.zero_grad()
+            # Actor update
+            self.actor.zero_grad()
 
-        policy_loss = -self.critic([
-            to_tensor(state_batch),
-            self.actor(to_tensor(p_state_batch), to_tensor(p_goal_batch)),
-            to_tensor(goal_batch)
-        ])
+            policy_loss = -self.critic(
+                to_tensor(state_batch[i]),
+                self.actor(to_tensor(p_state_batch[i]), to_tensor(p_goal_batch[i])),
+                to_tensor(goal_batch[i])
+            )
 
-        policy_loss = policy_loss.mean()
-        policy_loss.backward()
-        self.actor_optim.step()
+            policy_loss = policy_loss.mean()
+            policy_loss.backward()
+            self.actor_optimizer.step()
 
-        # Target update
-        soft_update(self.target_actor, self.actor, self.tau)
-        soft_update(self.target_critic, self.critic, self.tau)
-        return value_loss.data[0], policy_loss.data[0]
+            # Target update
+            soft_update(self.target_actor, self.actor, self.tau)
+            soft_update(self.target_critic, self.critic, self.tau)
+            vl += value_loss.data
+            policy_loss += pl
+        return vl/self.batch_size, pl/self.batch_size
 
     def eval(self):
         self.actor.eval()
@@ -256,7 +279,7 @@ class DDPG:
     #and then we gonna convert it to a binary number
     #and then we gonna convert it to a list of 0 and 1
     def random_action(self):
-        action = np.random.uniform(0, 1, size=self.action_dim)
+        action = np.random.uniform(0, 1, size=self.action_dim )
         action = (action > 0.5)
         action = 1*action
         self.a_t = action
@@ -279,7 +302,8 @@ class DDPG:
     def _process_action(self,action):
         return(action[0], action[1], action[2],\
             action[3],action[4], action[5],\
-            action[6], action[7], action[8])
+            action[6], action[7], action[8],
+            action[9],action[10])
 
     def reset(self, obs, p_obs, goal, p_goal):
         self.s_t = obs
@@ -288,7 +312,7 @@ class DDPG:
         self.gs = goal
         self.go = p_goal
 
-    def load_weights(self, output='csgo_model_weights'):
+    def load_weights(self, output='CSGO_model_weights'):
         if output is None: return
 
         self.actor.load_state_dict(
@@ -299,14 +323,14 @@ class DDPG:
             torch.load('{}/critic.pkl'.format(output))
         )
 
-    def save_model(self,output):
+    def save_model(self,output='CSGO_model_weights',epoch_num = 0, epoch_cycle_num = 0):
         torch.save(
             self.actor.state_dict(),
-            '{}/actor.pkl'.format(output)
+            '{}/actor_{}_{}.pkl'.format(output,epoch_num,epoch_cycle_num)
         )
         torch.save(
             self.critic.state_dict(),
-            '{}/critic.pkl'.format(output)
+            '{}/critic_{}_{}.pkl'.format(output,epoch_num,epoch_cycle_num,)
         )
 
     def seed(self,s):

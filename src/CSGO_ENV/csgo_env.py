@@ -75,7 +75,7 @@ class CSGO_Env_Utils:
             Discrete(1),
             
             #these 2 shows the coordinate to aim at, if any
-            Box(low=np.array([0, 0]), high=np.array([SCREEN_HEIGHT, SCREEN_WIDTH]), dtype=np.int32),
+            # Box(low=np.array([0, 0]), high=np.array([SCREEN_HEIGHT, SCREEN_WIDTH]), dtype=np.int32),
             
         ])
 
@@ -470,6 +470,10 @@ class CSGO_Env(gym.Env):
         #                 reward -= 0.1
         # return reward - cost
 
+    def pause_game():
+        GameClient.send_action('pause game', True)
+        
+    
 # Action
     # way we apply action might result very straight forward
     # if action dont explicitly state to press a key, we release it
@@ -740,6 +744,8 @@ class CSGO_Env(gym.Env):
         while agent_info['name'] != NAME_OF_AGENT:
             client.get_info("switch spectator target")
             agent_info = client.get_info("player")
+            GameClient.send_action("endround")
+            
         self.bombsite_choice = random.choice(['BombsiteA', 'BombsiteB'])
         # self._set_of_goals = CSGO_Env_Utils.generate_set_of_goals(self.bombsite_choice)
         
@@ -755,7 +761,7 @@ class CSGO_Env(gym.Env):
         information['allplayers'] = client.get_info("allplayers")
         information['bomb'] = client.get_info("bomb")
         self._get_state(information)
-        return self._obs, self._part_obs, 0, False,self._goal_state, self._partial_goal_state
+        return self._obs, self._part_obs, 0, False,self._goal_state.index, self._partial_goal_state.index
 
 # Goals implementation
     # Goals are basically a strategic objective in the game

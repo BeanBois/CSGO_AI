@@ -8,6 +8,8 @@ import re
 import json
 import pandas as pd
 from pynput.mouse import Controller, Button
+
+RESET= 5000
 class server:
     MouseController = Controller()
     def start_csgo_gsi_server():
@@ -22,9 +24,16 @@ class server:
         port = 4000
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.bind((host, port))
-
+        i = 0
         print("Server Started")
         while True:
+            
+            i +=1
+            if i % RESET ==0:
+                i = 0
+                GSI_SERVER_TRAINING.shutdown()
+                GSI_SERVER_TRAINING.start_server()
+            
             #receive key
             data, addr = s.recvfrom(1024)
             
@@ -48,7 +57,6 @@ class server:
                 data = re.sub(r"None", "\"null\"", data)
                 # print("Sending: " + data)
                 s.sendto(data.encode('utf-8'), addr)
-        # s.close()
 
 
 if __name__=='__main__':

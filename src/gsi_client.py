@@ -34,6 +34,18 @@ class client:
         if key == "player":
             find_player = True
             key = "allplayers"
+        # elif key == 'bomb':
+        #     s.sendto('round'.encode('utf-8'), server)
+        #     info, addr = s.recvfrom(1024*4)
+        #     info = info.decode('utf-8')
+        #     info = json.loads(info)
+        #     bomb = {}
+        #     if info['win_team'] == 'T':
+        #         bomb['state'] = 'exploded'
+        #         return bomb
+        #     elif info['win_team'] == 'CT':
+        #         bomb['state'] = 'defused'
+        #         return bomb
         s.sendto(key.encode('utf-8'), server)
         data, addr = s.recvfrom(1024*4)
         data = data.decode('utf-8')

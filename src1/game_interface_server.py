@@ -45,6 +45,8 @@ class GameServer:
                 words = action.split()
                 print(words)
                 self.start_game(words[1])
+            elif action.startswith('pause'):
+                self.pause_game(client, s)
             elif action.startswith("restart"):
                 words = action.split()
                 self.start_game(words[1])
@@ -67,8 +69,17 @@ class GameServer:
         
         response = "done"
         s.sendto(response.encode('utf-8'), client)
-        return
 
+    def pause_game(self, client, s):
+        self.reset_controllers()
+        self.keyboard_controller.press('`')
+        time.sleep(0.1)
+        self.keyboard_controller.release('`')
+        self.csgo_type_command(self.keyboard_controller, 'endround')
+        self.csgo_type_command(self.keyboard_controller, 'bot_stop', '1')
+        self.keyboard_controller.press('`')
+        time.sleep(0.1)
+        self.keyboard_controller.release('`')
 
     def endround(self):
         self.reset_controllers()
