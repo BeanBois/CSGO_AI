@@ -101,9 +101,9 @@ class GameServer:
         ctrl_pressed = True if action[2] == 1 else False
         spacebar_pressed = True if action[3] == 1 else False
         movement_button = None
-        left_click = True if action[10] == 1 else False
+        left_click = True if action[9] == 1 else False
         # enemy_screen_coords = self._obs['enemy_coords_on_screen']
-        cursor_location = (action[11], action[12])
+        cursor_location = (action[10], action[11])
 
         if left_click:
             #if there is a target to aim at
@@ -116,14 +116,24 @@ class GameServer:
             # self.mouse_controller.release(Button.left)
 
         #Action to control the mouse
-        if action[7] == 1 and action[6] == 0:
-            self.mouse_controller.move(-1, 0)
-        if action[6] == 1 and action[7] == 0:
-            self.mouse_controller.move(1, 0)
-        if action[9] == 1 and action[8] == 0:
-            self.mouse_controller.move(0, 1)
-        if action[8] == 1 and action[9] == 0:
-            self.mouse_controller.move(0, -1)    
+        if action[6] == 0:
+            if action[7] == 0 and action[8] == 0:
+                self.mouse_controller.move(1, 0)
+            elif action[7] == 1 and action[8] == 0:
+                self.mouse_controller.move(-1, 0)
+            elif action[7] == 0 and action[8] == 1:
+                self.mouse_controller.move(0, 1)
+            elif action[7] == 1 and action[8] == 1:
+                self.mouse_controller.move(0, -1)
+        
+        # if action[7] == 1 and action[6] == 0:
+        #     self.mouse_controller.move(-1, 0)
+        # if action[6] == 1 and action[7] == 0:
+        #     self.mouse_controller.move(1, 0)
+        # if action[9] == 1 and action[8] == 0:
+        #     self.mouse_controller.move(0, 1)
+        # if action[8] == 1 and action[9] == 0:
+        #     self.mouse_controller.move(0, -1)    
 
         # we only set movement action if action[0] == 0
         # this is so as we prevent any keyboard-related inputs when action[0] == 1
