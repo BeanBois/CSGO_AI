@@ -514,9 +514,12 @@ class CSGO_Env(gym.Env):
         if agent_weapon is not None:
             agent_bullets = int(agent_weapon['ammo_clip']) if "ammo_clip" in agent_weapon.keys() else 0
             
-        enemy_screen_coord = information['enemy_screen_coords'].get('head', (None, None))
-        if enemy_screen_coord[0] is None and enemy_screen_coord[1] is None:
-            enemy_screen_coord = information['enemy_screen_coords'].get('body', (None, None))
+        enemy_screen_coord = information['enemy_screen_coords']
+        if enemy_screen_coord is not None:
+            enemy_screen_coord = enemy_screen_coord[1:-1] # remove the brackets
+            enemy_screen_coord = enemy_screen_coord.split(',')
+            enemy_screen_coord = [int(x) for x in enemy_screen_coord]
+            
         print('enemy_screen_coord', enemy_screen_coord)
         match_result = 0
         # if "bomb" in round_info.keys():
@@ -687,6 +690,8 @@ class CSGO_Env(gym.Env):
             time_of_info_enemy = int(float(phase_cd['phase_ends_in']))
 
         bomb = information["bomb"]
+        
+        #CHANGE THIS
         enemy_screen_coord = information['enemy_screen_coords'].get('head', None)
         if enemy_screen_coord is None:
             enemy_screen_coord = information['enemy_screen_coords'].get(
