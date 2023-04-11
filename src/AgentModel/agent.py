@@ -127,9 +127,11 @@ class Critic(nn.Module):
         self.fc1 = nn.Linear(flatdim(state_dim) + flatdim(action_dim) + flatdim(goal_dim), 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc3 = nn.Linear(512, 512)
-        self.fc4 = nn.Linear(512, 1)
+        self.fc4 = nn.Linear(512, 512)
+        self.fc5 = nn.Linear(512, 1)
         # self.relu = nn.ReLU()
         self.relu = torch.nn.functional.relu
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, state, action, goal):
         x = torch.cat((state.flatten(), action.flatten(), goal.flatten()), dim=0)
@@ -138,7 +140,9 @@ class Critic(nn.Module):
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         x = self.relu(self.fc3(x))
-        x = self.fc4(x)
+        x = self.relu(self.fc4(x))
+        x = self.fc5(x)
+        x = self.sigmoid(x)
         return x
 
 
@@ -148,7 +152,8 @@ class Actor(nn.Module):
         self.fc1 = nn.Linear(flatdim(state_dim) + flatdim(goal_dim), 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc3 = nn.Linear(512, 512)
-        self.fc4 = nn.Linear(512, flatdim(action_dim)) # action_dim = 10
+        self.fc4 = nn.Linear(512, 512)
+        self.fc5 = nn.Linear(512, flatdim(action_dim)) # action_dim = 10
         # self.relu = nn.ReLU()
         self.relu = torch.nn.functional.relu
         
@@ -163,7 +168,9 @@ class Actor(nn.Module):
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         x = self.relu(self.fc3(x))
-        x = self.sigmoid(self.fc4(x))
+        x = self.relu(self.fc4(x))
+        x = self.fc5(x)
+        x = self.sigmoid(x)
         return x
 
 

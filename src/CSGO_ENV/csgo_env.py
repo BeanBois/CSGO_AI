@@ -204,7 +204,6 @@ class CSGO_Env(gym.Env):
         self._set_of_goals = None
         self._goal_state = None
         self._partial_goal_state = None
-        self._time_of_goal_state = None
         self._init_para()
         # observation space can be abstractly thought of as a set of nodes
         # each node encapsulates the following
@@ -729,10 +728,13 @@ class CSGO_Env(gym.Env):
 
 
     def reset(self):
+        #reset variables
         self._obs = None
         self._part_obs = None
         self._goal_state = None
         self._partial_goal_state = None
+        self.bombsite_choice = random.choice(['BombsiteA', 'BombsiteB'])
+        
         #wait until the game is live
         # round_info = client.get_info("round")
         # while round_info['phase'] != 'live':
@@ -746,7 +748,6 @@ class CSGO_Env(gym.Env):
             agent_info = client.get_info("player")
             GameClient.send_action("endround")
             
-        self.bombsite_choice = random.choice(['BombsiteA', 'BombsiteB'])
         # self._set_of_goals = CSGO_Env_Utils.generate_set_of_goals(self.bombsite_choice)
         
         GameClient.send_action(f"restart {self.bombsite_choice}")
