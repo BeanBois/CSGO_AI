@@ -488,6 +488,7 @@ class CSGO_Env(gym.Env):
                 action.append(str(None))
                 action.append(str(None))
             action = ','.join(action)
+            print('action: ', action)
             GameClient.send_action(action, done)
             time.sleep(self.ACTION_TIME)
     # TODO: Change datatype

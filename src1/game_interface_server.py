@@ -55,9 +55,9 @@ class GameServer:
                 pass
             else:
                 tmp = data['action'].split(',')
-                tmp = tmp[:-2]
+                action = tmp[:-2]
                 coord =  tmp[-2:]
-                action = [int(i) for i in tmp]
+                action = [int(i) for i in action]
 
                 if coord[0] != 'None':
                     action.append(int(float(coord[0])))

@@ -315,11 +315,9 @@ class DDPG:
     #and then we gonna convert it to a binary number
     #and then we gonna convert it to a list of 0 and 1
     def random_action(self):
-        action = np.random.uniform(0, 1, size=self.action_dim - 2)
+        action = np.random.uniform(0, 1, size=self.action_dim)
         action = (action > 0.5)
         action = 1*action
-        action.append(None)
-        action.append(None)
         self.a_t = action
         return self._process_action(action)
 
