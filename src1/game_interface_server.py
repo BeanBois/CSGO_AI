@@ -55,8 +55,11 @@ class GameServer:
             elif action is None:
                 pass
             else:
-                action = [int(i) for i in data['action'][:-2].split(',')]
-                coord =  data['action'][-2:].split(',')
+                tmp = data['action'].split(',')
+                tmp = tmp[:-2]
+                coord =  tmp[-2:]
+                action = [int(i) for i in tmp]
+
                 if coord[0] != 'None':
                     action.append(int(float(coord[0])))
                     action.append(int(float(coord[1])))
@@ -65,6 +68,7 @@ class GameServer:
                     action.append(None)
                 if not done:
                     self._apply_action(action)
+                    
             print('action applied')
         
         response = "done"
