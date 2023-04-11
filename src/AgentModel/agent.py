@@ -35,7 +35,7 @@ def flatten_p_obs(obs):
     enemy_forw = enemy_pos['forward'] if enemy_pos['forward'] is not None else  np.array([np.nan,np.nan,np.nan])
     enemy_time_seen = enemy_pos['time_seen'] if enemy_pos['time_seen'] is not None else np.nan
     enemy_health = obs['enemy']['health'] if obs['enemy']['health'] is not None else 100
-    enemy_coor_on_screen = obs['enemy']['enemy_screen_coords'] if obs['enemy']['enemy_screen_coords'][0] is not None else  np.array([np.nan,np.nan])
+    enemy_coor_on_screen = obs['enemy']['enemy_screen_coords'] if obs['enemy']['enemy_screen_coords'] is not None else  np.array([np.nan,np.nan])
     
     agent_pos = obs['agent']['position']
     agent_loc = agent_pos['location']
@@ -63,7 +63,7 @@ def flatten_obs(p_obs):
     enemy_forw = enemy_pos['forward']
     enemy_time_seen = enemy_pos['time_seen']
     enemy_health = p_obs['enemy']['health']
-    enemy_coor_on_screen = p_obs['enemy']['enemy_screen_coords'] if p_obs['enemy']['enemy_screen_coords'][0] is not None else  np.array([np.nan,np.nan])
+    enemy_coor_on_screen = p_obs['enemy']['enemy_screen_coords'] if p_obs['enemy']['enemy_screen_coords'] is not None else  np.array([np.nan,np.nan])
     
     agent_pos = p_obs['agent']['position']
     agent_loc = agent_pos['location']

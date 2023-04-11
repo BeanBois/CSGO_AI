@@ -34,9 +34,10 @@ class EnemyDetectorClient:
         data = re.sub(r"\'", "\"", str(data))
         data = re.sub(r"None", "\"null\"", data)
         
-        print(data)
         data = json.loads(data)
-        print("Received from server: " + str(data))
+        print("Received from server: " , data)
+        if data['enemy_screen_coords'] == 'null':
+            data['enemy_screen_coords'] = json.loads(data['enemy_screen_coords'])
         s.close()
 
         return data

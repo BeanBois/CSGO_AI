@@ -340,9 +340,7 @@ class CSGO_Env(gym.Env):
             # if enemy tries to defuse bomb, agent will know
             # if not enemy_on_radar or not (information['bomb']['state'] == 'defusing' and self._obs['bomb defusing'][0] == 0):
             if enemy_screen_coords is not None or not (information['bomb']['state'] == 'defusing' and self._obs['bomb_defusing'][0] == 0):
-                enemy_coord = enemy_screen_coords.get('head', None)
-                if enemy_coord[0] is None and enemy_coord[1] is None:
-                    enemy_coord = enemy_screen_coords.get('body', None)
+                enemy_coord = enemy_screen_coords
                 self._obs['enemy']['enemy_screen_coords'] =  enemy_coord
                 partial_information['allplayers'] = None
 
@@ -469,7 +467,7 @@ class CSGO_Env(gym.Env):
         #                 reward -= 0.1
         # return reward - cost
 
-    def pause_game():
+    def pause_game(self):
         GameClient.send_action('pause game', True)
         
     
@@ -481,7 +479,7 @@ class CSGO_Env(gym.Env):
             # sleep to run through the timed thread
             action = list(action)
             action = [str(x.item()) for x in action]
-            if self._obs is not None:
+            if self._obs is not None and self._obs['enemy']['enemy_screen_coords'] is not None:
                 action.append(str(self._obs['enemy']['enemy_screen_coords'][0]))
                 action.append(str(self._obs['enemy']['enemy_screen_coords'][1]))
             else:
@@ -518,7 +516,7 @@ class CSGO_Env(gym.Env):
         if enemy_screen_coord is not None:
             enemy_screen_coord = enemy_screen_coord[1:-1] # remove the brackets
             enemy_screen_coord = enemy_screen_coord.split(',')
-            enemy_screen_coord = [int(x) for x in enemy_screen_coord]
+            enemy_screen_coord = [int(float(x)) for x in enemy_screen_coord]
             
         print('enemy_screen_coord', enemy_screen_coord)
         match_result = 0
@@ -692,10 +690,11 @@ class CSGO_Env(gym.Env):
         bomb = information["bomb"]
         
         #CHANGE THIS
-        enemy_screen_coord = information['enemy_screen_coords'].get('head', None)
-        if enemy_screen_coord is None:
-            enemy_screen_coord = information['enemy_screen_coords'].get(
-                'body', None)
+        enemy_screen_coord = information['enemy_screen_coords']
+        if enemy_screen_coord is not None:
+            enemy_screen_coord = enemy_screen_coord[1:-1] # remove the brackets
+            enemy_screen_coord = enemy_screen_coord.split(',')
+            enemy_screen_coord = [int(float(x)) for x in enemy_screen_coord]
         return{
             # 'obs_type': 0,
             'enemy': {
