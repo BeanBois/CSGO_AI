@@ -122,9 +122,9 @@ class GameServer:
             elif action[7] == 1 and action[8] == 0:
                 self.mouse_controller.move(-1, 0)
             elif action[7] == 0 and action[8] == 1:
-                self.mouse_controller.move(0, 1)
+                self.mouse_controller.move(1, 0)
             elif action[7] == 1 and action[8] == 1:
-                self.mouse_controller.move(0, -1)
+                self.mouse_controller.move(-1, 0)
         
         # if action[7] == 1 and action[6] == 0:
         #     self.mouse_controller.move(-1, 0)
