@@ -31,7 +31,9 @@ class EnemyDetectorClient:
         s.bind((host,port))
         data, addr = s.recvfrom(1024)
         data = data.decode('utf-8')
-        data = json.loads(str(data))
+        data = re.sub(r"\'", "\"", str(data))
+        
+        data = json.loads(data)
         print("Received from server: " + str(data))
         s.close()
 
@@ -40,3 +42,5 @@ class EnemyDetectorClient:
 if __name__ == '__main__':
     info = EnemyDetectorClient.get_enemy_info()
     print(info)
+    
+    

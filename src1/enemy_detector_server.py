@@ -210,7 +210,7 @@ class EnemyDetectorServer:
         if enemy_on_radar:
             enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
             if enemy_screen_coords is not None:
-                data = {"enemy_on_screen" : "1", "enemy_screen_coords" : enemy_screen_coords}
+                data = {"enemy_on_screen" : "1", "enemy_screen_coords" : str(enemy_screen_coords)}
             else:
                 data = {"enemy_on_screen" : "1", "enemy_screen_coords" : "null"}           
         else:

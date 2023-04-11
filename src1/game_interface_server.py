@@ -35,7 +35,6 @@ class GameServer:
         if ready[0]:
             data, addr = s.recvfrom(1024)
             data = data.decode('utf-8')
-            data = re.sub(r"\'", "\"", str(data))
             data = json.loads(data)
             done = bool(data['done'])
             action = data['action']
