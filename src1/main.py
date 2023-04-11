@@ -16,7 +16,7 @@ enemy_detector_client = ('192.168.1.109', 6005)
 
 # s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # s.bind((host, port))
-# print("Server Started")
+# print("Server Started")   
     
 # # _, addr = s.recvfrom(1024)
 # client =('192.168.1.109', 4005)
