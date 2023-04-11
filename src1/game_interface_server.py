@@ -31,7 +31,7 @@ class GameServer:
     
     def get_action(self, s, client):
         ready = select.select([s], [], [], 0.5)
-        print(ready)
+        # print(ready)
         if ready[0]:
             data, addr = s.recvfrom(1024)
             data = data.decode('utf-8')
