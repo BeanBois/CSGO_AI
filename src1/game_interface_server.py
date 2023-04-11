@@ -103,7 +103,7 @@ class GameServer:
         movement_button = None
         left_click = True if action[9] == 1 else False
         # enemy_screen_coords = self._obs['enemy_coords_on_screen']
-        cursor_location = (action[10], action[11])
+        cursor_location = (action[10], action[11]) 
 
         if left_click:
             #if there is a target to aim at

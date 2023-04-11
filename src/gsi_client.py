@@ -3,6 +3,7 @@
 
 #server client inspired code from : https://stackoverflow.com/questions/11352855/communication-between-two-computers-using-python-socket
 import socket
+import select
 import json
 NAME_OF_AGENT = 'beebeepop'
 class client:
@@ -34,39 +35,34 @@ class client:
         if key == "player":
             find_player = True
             key = "allplayers"
-        # elif key == 'bomb':
-        #     s.sendto('round'.encode('utf-8'), server)
-        #     info, addr = s.recvfrom(1024*4)
-        #     info = info.decode('utf-8')
-        #     info = json.loads(info)
-        #     bomb = {}
-        #     if info['win_team'] == 'T':
-        #         bomb['state'] = 'exploded'
-        #         return bomb
-        #     elif info['win_team'] == 'CT':
-        #         bomb['state'] = 'defused'
-        #         return bomb
         s.sendto(key.encode('utf-8'), server)
-        data, addr = s.recvfrom(1024*4)
-        data = data.decode('utf-8')
-        if data == "done":
-            return
-        # print("Received from server: " + data)
-        # print(f'key: {key} data: {data}')
-        data = json.loads(data)
-        if find_player:
-            data = client.get_player(data)
-        # print("Received from server: " + str(data))
-        # print("Received from server: " + str(data))
-        s.close()
-        # if key == 'position' or key == 'forward':
-        #     coords = data.split(',')
-        #     return coords
-        return data
+        ready = select.select([s], [], [], 0.5)
+        while(not ready[0]):
+            s.sendto(key.encode('utf-8'), server)
+            ready = select.select([s], [], [], 0.5)
+        if ready[0]:
+            data, addr = s.recvfrom(1024*4)
+            data = data.decode('utf-8')
+            if data == "done":
+                return
+            # print("Received from server: " + data)
+            # print(f'key: {key} data: {data}')
+            data = json.loads(data)
+            if find_player:
+                data = client.get_player(data)
+            # print("Received from server: " + str(data))
+            # print("Received from server: " + str(data))
+            s.close()
+            # if key == 'position' or key == 'forward':
+            #     coords = data.split(',')
+            #     return coords
+            return data
     
     def get_player(all_player_data):
         for player in all_player_data:
-    
             if all_player_data[player]['name'] == NAME_OF_AGENT:
                 return all_player_data[player]
         
+if __name__ == '__main__':
+    data = client.get_info('player')
+    print(data)

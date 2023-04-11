@@ -15,7 +15,7 @@ from gym.spaces.utils import flatdim
 
 CONFIDENCE = 0.7
 
-criterion = nn.MSELoss()
+criterion = nn.CrossEntropyLoss()
 def flatten_location(location,DIMENSIONS):
     x_min, x_max, y_min, y_max, z_min, z_max = DIMENSIONS
     x_axis = np.zeros(x_max-x_min)
@@ -31,11 +31,11 @@ def flatten_location(location,DIMENSIONS):
 
 def flatten_p_obs(obs):
     enemy_pos = obs['enemy']['position'] 
-    enemy_loc = enemy_pos['location'] if enemy_pos['location'] is not None else np.array([np.nan,np.nan,np.nan])
-    enemy_forw = enemy_pos['forward'] if enemy_pos['forward'] is not None else  np.array([np.nan,np.nan,np.nan])
-    enemy_time_seen = enemy_pos['time_seen'] if enemy_pos['time_seen'] is not None else np.nan
+    enemy_loc = enemy_pos['location'] if enemy_pos['location'] is not None else np.array([0,0,0])
+    enemy_forw = enemy_pos['forward'] if enemy_pos['forward'] is not None else  np.array([0,0,0])
+    enemy_time_seen = enemy_pos['time_seen'] if enemy_pos['time_seen'] is not None else 0
     enemy_health = obs['enemy']['health'] if obs['enemy']['health'] is not None else 100
-    enemy_coor_on_screen = obs['enemy']['enemy_screen_coords'] if obs['enemy']['enemy_screen_coords'] is not None else  np.array([np.nan,np.nan])
+    enemy_coor_on_screen = obs['enemy']['enemy_screen_coords'] if obs['enemy']['enemy_screen_coords'] is not None else  np.array([0,0])
     
     agent_pos = obs['agent']['position']
     agent_loc = agent_pos['location']
@@ -54,7 +54,7 @@ def flatten_p_obs(obs):
     winner = obs['winner']
     arr = np.concatenate((enemy_loc, enemy_forw, enemy_time_seen, enemy_health, enemy_coor_on_screen, agent_loc, agent_forw, agent_gun, agent_bullets, agent_health, bomb_location, bomb_defusing, time_of_info, curr_time, winner), axis=None)
     arr=arr.flatten()
-    print(arr)
+    # print(arr)
     return arr
 
 def flatten_obs(p_obs):
@@ -63,7 +63,7 @@ def flatten_obs(p_obs):
     enemy_forw = enemy_pos['forward']
     enemy_time_seen = enemy_pos['time_seen']
     enemy_health = p_obs['enemy']['health']
-    enemy_coor_on_screen = p_obs['enemy']['enemy_screen_coords'] if p_obs['enemy']['enemy_screen_coords'] is not None else  np.array([np.nan,np.nan])
+    enemy_coor_on_screen = p_obs['enemy']['enemy_screen_coords'] if p_obs['enemy']['enemy_screen_coords'] is not None else  np.array([0,0])
     
     agent_pos = p_obs['agent']['position']
     agent_loc = agent_pos['location']
@@ -79,7 +79,7 @@ def flatten_obs(p_obs):
     winner = p_obs['winner']
     arr = np.concatenate((enemy_loc, enemy_forw, enemy_time_seen, enemy_health, enemy_coor_on_screen, agent_loc, agent_forw, agent_gun, agent_bullets, agent_health, bomb_location, bomb_defusing, time_of_info, curr_time, winner), axis=None)
     arr = arr.flatten()
-    print(arr)
+    # print(arr)
     return arr
 
 def flatten_goal(goal):
@@ -125,10 +125,21 @@ class Critic(nn.Module):
     def __init__(self, state_dim, action_dim, goal_dim):
         super(Critic, self).__init__()
         self.fc1 = nn.Linear(flatdim(state_dim) + flatdim(action_dim) + flatdim(goal_dim), 512)
-        self.fc2 = nn.Linear(512, 512)
-        self.fc3 = nn.Linear(512, 512)
-        self.fc4 = nn.Linear(512, 512)
-        self.fc5 = nn.Linear(512, 1)
+        self.fc2 = nn.Linear(512, 1024)
+        self.fc3 = nn.Linear(1024, 2048)
+        self.fc4 = nn.Linear(2048, 1024)
+        self.fc5 = nn.Linear(1024, 512)
+        self.fc6 = nn.Linear(512, 1)
+        
+        #init weight
+        nn.init.kaiming_uniform_(self.fc1.weight, nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.fc2.weight, nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.fc3.weight, nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.fc4.weight, nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.fc5.weight, nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.fc6.weight, nonlinearity='relu')
+        
+        
         # self.relu = nn.ReLU()
         self.relu = torch.nn.functional.relu
         self.sigmoid = nn.Sigmoid()
@@ -141,8 +152,9 @@ class Critic(nn.Module):
         x = self.relu(self.fc2(x))
         x = self.relu(self.fc3(x))
         x = self.relu(self.fc4(x))
-        x = self.fc5(x)
-        x = self.sigmoid(x)
+        x = self.relu(self.fc5(x))
+        x = self.fc6(x)
+        x = self.relu(x)
         return x
 
 
@@ -150,12 +162,22 @@ class Actor(nn.Module):
     def __init__(self, state_dim, action_dim, goal_dim):
         super(Actor, self).__init__()
         self.fc1 = nn.Linear(flatdim(state_dim) + flatdim(goal_dim), 512)
-        self.fc2 = nn.Linear(512, 512)
-        self.fc3 = nn.Linear(512, 512)
-        self.fc4 = nn.Linear(512, 512)
-        self.fc5 = nn.Linear(512, flatdim(action_dim)) # action_dim = 10
+        self.fc2 = nn.Linear(512, 1024)
+        self.fc3 = nn.Linear(1024, 2048)
+        self.fc4 = nn.Linear(2048, 1024)
+        self.fc5 = nn.Linear(1024, 512)
+        self.fc6 = nn.Linear(512, flatdim(action_dim)) # action_dim = 10
         # self.relu = nn.ReLU()
         self.relu = torch.nn.functional.relu
+        
+        #init weight
+        nn.init.kaiming_uniform_(self.fc1.weight, nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.fc2.weight, nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.fc3.weight, nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.fc4.weight, nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.fc5.weight, nonlinearity='relu')
+        nn.init.xavier_uniform_(self.fc6.weight)
+        
         
         # self.tanh = nn.Tanh()
         self.sigmoid = nn.Sigmoid()
@@ -169,7 +191,8 @@ class Actor(nn.Module):
         x = self.relu(self.fc2(x))
         x = self.relu(self.fc3(x))
         x = self.relu(self.fc4(x))
-        x = self.fc5(x)
+        x = self.relu(self.fc5(x))
+        x = self.fc6(x)
         x = self.sigmoid(x)
         return x
 
@@ -193,7 +216,7 @@ class DDPG:
         self.replay_buffer = deque(maxlen=105)
         self.discount = 0.98
         self.tau = 0.98
-        self.batch_size = 128
+        self.batch_size = 250
         self.horizon = 50
         self.exploration_prob = 0.2
         self.exploration_noise = 0.05 
@@ -224,10 +247,15 @@ class DDPG:
         vl = 0
         for i in range(self.batch_size):
         # Prepare for the target q batch
+            print('state_batch[i]', state_batch[i])
+            print('next_state_batch[i]', next_state_batch[i])
+            print('p_state_batch[i]', p_state_batch[i])
+            print('next_p_state_batch[i]', next_p_state_batch[i])
+            
             next_q_values = self.target_critic(
-                to_tensor(next_state_batch[i], volatile=True),
-                self.target_actor(to_tensor(next_p_state_batch[i], volatile=True), to_tensor(p_goal_batch[i], volatile=True)),
-                to_tensor(goal_batch[i], volatile=True),
+                to_tensor(next_state_batch[i]),
+                self.target_actor(to_tensor(next_p_state_batch[i]), to_tensor(p_goal_batch[i])),
+                to_tensor(goal_batch[i]),
             )
             next_q_values.volatile=False
 
@@ -261,6 +289,7 @@ class DDPG:
             soft_update(self.target_critic, self.critic, self.tau)
             vl += value_loss.data
             policy_loss += pl
+            print("value loss: ", vl, "policy loss: ", pl)
         return vl/self.batch_size, pl/self.batch_size
 
     def eval(self):
@@ -286,15 +315,20 @@ class DDPG:
     #and then we gonna convert it to a binary number
     #and then we gonna convert it to a list of 0 and 1
     def random_action(self):
-        action = np.random.uniform(0, 1, size=self.action_dim )
+        action = np.random.uniform(0, 1, size=self.action_dim - 2)
         action = (action > 0.5)
         action = 1*action
+        action.append(None)
+        action.append(None)
         self.a_t = action
         return self._process_action(action)
 
     #redo this
     #output of actor network is
     def select_action(self, p_s_t, g_o):
+        prob = np.random.uniform(0, 1)
+        if prob < self.exploration_prob:
+            return self.random_action()
         x1 = flatten_p_obs(p_s_t)
         x2 = flatten_goal(g_o)
         x1 = to_tensor(x1)
@@ -319,15 +353,15 @@ class DDPG:
         self.gs = goal
         self.go = p_goal
 
-    def load_weights(self, output='CSGO_model_weights'):
+    def load_weights(self, output='CSGO_model_weights',epoch_num = 0, epoch_cycle_num = 0):
         if output is None: return
 
         self.actor.load_state_dict(
-            torch.load('{}/actor.pkl'.format(output))
+            torch.load( '{}/actor_{}_{}.pkl'.format(output,epoch_num,epoch_cycle_num))
         )
 
         self.critic.load_state_dict(
-            torch.load('{}/critic.pkl'.format(output))
+            torch.load('{}/critic_{}_{}.pkl'.format(output,epoch_num,epoch_cycle_num,))
         )
 
     def save_model(self,output='CSGO_model_weights',epoch_num = 0, epoch_cycle_num = 0):

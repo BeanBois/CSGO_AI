@@ -33,5 +33,11 @@ class GameClient:
         s.close()
         # data, addr = s.recvfrom(1024)
 
-# if __name__ == "__main__":
-    # GameClient.send_action
+if __name__ == "__main__":
+    action = [0,0,0,0,0,0,0,0,0,0,0,None,None]
+    action[6] = 1
+    action[8] = 1
+    action = [str(x) for x in action]
+    action = ','.join(action)
+    for i in range(1920):
+        GameClient.send_action(action,False)

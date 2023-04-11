@@ -8,6 +8,8 @@ import pandas as pd
 from AgentModel.agent import DDPG
 # from AgentModel.util import mpi_mean, mpi_std, mpi_max, mpi_sum
 import torch
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter()
 
 # from AgentModel import logger
 import numpy as np
@@ -19,14 +21,21 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TRAINING_STATS_SAVE_FILEPATH = '/Users/beep_kai/Desktop/fyp/CSGO_AI_ref/src/training_statistics/epoch_data/training_data'
 EVALUATION_STATS_SAVE_FILEPATH = '/Users/beep_kai/Desktop/fyp/CSGO_AI_ref/src/training_statistics/epoch_data/evaluation_data/'
 
-def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 500, nb_of_rounds = 10, eval_env=None):
+def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 100, nb_of_rounds = 10, eval_env=None, load_model = False):
     print('start training')
     print('init agent and env')
     
-    
+    restarting_epoch = False
+    restarting_epoch_cycle = False
     agent = DDPG(env.observation_space, env.action_space, env.goal_space, device)
     obs, p_obs, reward, done, goal, p_goal = env.reset()
     agent.reset(obs, p_obs, goal, p_goal)
+    if load_model:
+        LAST_EPOCH = 1 #update this value
+        LAST_EPOCH_CYCLE = 8 #update this value
+        agent.load_weights(epoch_num=LAST_EPOCH, epoch_cycle_num=LAST_EPOCH_CYCLE)
+        restarting_epoch = True
+        restarting_epoch_cycle = True
     
     
     
@@ -34,11 +43,16 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 500, nb_of
         #init data structure here to collectn data foreach epoch
         avg_reward_in_epoch = []
         avg_winrate_in_epoch= []
-        
+        if restarting_epoch:
+            epoch += LAST_EPOCH
+            restarting_epoch = False
         for epoch_cycle in range(nb_epoch_cycles):
             #init data structure here to collectn data foreach epoch cycle
             cum_reward_in_epoch_cycle = 0
             rounds_won = 0
+            if restarting_epoch_cycle:
+                epoch_cycle += LAST_EPOCH_CYCLE
+                restarting_epoch_cycle = False
             for round in range(nb_of_rounds):
                 obs, p_obs, reward, done, goal, p_goal = env.reset()
                 agent.reset(obs, p_obs, goal, p_goal)
@@ -50,7 +64,7 @@ def train(env, nb_epochs = 40, nb_epoch_cycles = 20, nb_train_steps = 500, nb_of
                 while True:
                     print("round number : ", round)
                     action, q = None, 0
-                    if epoch_cycle < 1:
+                    if epoch < 1:
                         action, q = agent.random_action(), 0
                     else:
                         action, q = agent.select_action(p_obs, p_goal), 0

@@ -339,10 +339,12 @@ class CSGO_Env(gym.Env):
             # bomb location is always known by agent
             # if enemy tries to defuse bomb, agent will know
             # if not enemy_on_radar or not (information['bomb']['state'] == 'defusing' and self._obs['bomb defusing'][0] == 0):
-            if enemy_screen_coords is not None or not (information['bomb']['state'] == 'defusing' and self._obs['bomb_defusing'][0] == 0):
-                enemy_coord = enemy_screen_coords
-                self._obs['enemy']['enemy_screen_coords'] =  enemy_coord
+            
+            # TLDR if enemy is not seen (on screen or on radar) or if enemy did not interact with bomb
+            #we do not know anything about the enemy 
+            if enemy_screen_coords is None or not (information['bomb']['state'] == 'defusing' and self._obs['bomb_defusing'][0] == 0):
                 partial_information['allplayers'] = None
+            
 
             self._get_partial_state(partial_information)
             self._generate_goal()
@@ -546,7 +548,7 @@ class CSGO_Env(gym.Env):
                     'forward': np.array(enemy['forward'].split(','), dtype=np.float32),
                     'time_seen': int(float(phase_cd['phase_ends_in'])),
                 },
-                'enemy_screen_coords': enemy_screen_coord if enemy_screen_coord != (None, None) else (None, None),
+                'enemy_screen_coords': enemy_screen_coord if enemy_screen_coord != None else None,
                 'health': int(enemy['state']['health']),
             },
             'agent': {
@@ -628,12 +630,12 @@ class CSGO_Env(gym.Env):
         curr_bomb_state = information['bomb']['state']
 
         # now if our time_of_info_bomb is way too old <5s, we delete the information as irrelevant
-        if time_of_info_bomb is None or int(float(phase_cd['phase_ends_in'])) - time_of_info_bomb > 50:
+        if time_of_info_bomb is None or abs(int(float(phase_cd['phase_ends_in'])) - time_of_info_bomb) > 5:
             bomb_state = None
             time_of_info_bomb = int(float(phase_cd['phase_ends_in']))
 
         # same goes for time_of_info_enemy
-        if time_of_info_enemy is None or int(float(phase_cd['phase_ends_in'])) - time_of_info_enemy > 50:
+        if time_of_info_enemy is None or abs(int(float(phase_cd['phase_ends_in'])) - time_of_info_enemy) > 5:
             enemy = None
             enemy_pos = None
             enemy_loc = None
