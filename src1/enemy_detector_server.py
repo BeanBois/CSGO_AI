@@ -210,11 +210,11 @@ class EnemyDetectorServer:
         if enemy_on_radar:
             enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
             if enemy_screen_coords is not None:
-                data = {"enemy_on_screen" : "1", "enemy_screen_coords" : str(enemy_screen_coords)}
+                data = {"enemy_on_radar" : "1", "enemy_screen_coords" : str(enemy_screen_coords)}
             else:
-                data = {"enemy_on_screen" : "1", "enemy_screen_coords" : "null"}           
+                data = {"enemy_on_radar" : "1", "enemy_screen_coords" : "null"}           
         else:
-            data = {"enemy_on_screen" : "null", "enemy_screen_coords" : "null"}
+            data = {"enemy_on_radar" : "0", "enemy_screen_coords" : "null"}
         #then process the data from client, specifically
         #see if the enemy is present, and if so, get the coordinates of the enemy
         # data = json.dumps(data)
