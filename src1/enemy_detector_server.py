@@ -149,7 +149,7 @@ class EnemyScreenDetector:
                         }
                         print('found body and head')
             print('aims : ', aims)
-            return self.enemy_screen_coords
+            return self.get_enemy_coords()
         except Exception as e:
             print(e)
             print('error in scan_for_enemy')

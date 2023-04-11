@@ -32,7 +32,9 @@ class EnemyDetectorClient:
         data, addr = s.recvfrom(1024)
         data = data.decode('utf-8')
         data = re.sub(r"\'", "\"", str(data))
+        data = re.sub(r"None", "\"null\"", data)
         
+        print(data)
         data = json.loads(data)
         print("Received from server: " + str(data))
         s.close()

@@ -66,6 +66,7 @@ class client:
     
     def get_player(all_player_data):
         for player in all_player_data:
+    
             if all_player_data[player]['name'] == NAME_OF_AGENT:
                 return all_player_data[player]
         
