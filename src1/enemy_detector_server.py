@@ -96,9 +96,7 @@ class EnemyScreenDetector:
     def _scan_for_enemy(self, image):
         print('scanning for enemy')
         try:
-            print('image shape : ', image.shape)
             image_processed = self._process_image(image)
-            print('image_p shape : ', image_processed.shape)
 
             pred = self.model(image_processed, augment=False, visualize=False)[0]
             pred = general.non_max_suppression(pred, self.conf_thres, self.iou_thres, agnostic=False)
@@ -151,7 +149,6 @@ class EnemyScreenDetector:
                             'head' : (head_x, head_y)
                         }
                         print('found body and head')
-            print('aims : ', aims)
             return self.get_enemy_coords()
         except Exception as e:
             print(e)
