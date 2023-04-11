@@ -101,10 +101,15 @@ class GameServer:
         ctrl_pressed = True if action[2] == 1 else False
         spacebar_pressed = True if action[3] == 1 else False
         movement_button = None
-        left_click = True if action[9] == 1 else False
+        left_click = True if action[10] == 1 else False
         # enemy_screen_coords = self._obs['enemy_coords_on_screen']
+<<<<<<< HEAD
         cursor_location = (action[10], action[11]) 
 
+=======
+        cursor_location = (action[11], action[12])
+        print('cursor location', cursor_location)
+>>>>>>> ed9cb7d (src1 fix)
         if left_click:
             #if there is a target to aim at
             if cursor_location[0] is not None and cursor_location[1] is not None:
@@ -116,24 +121,24 @@ class GameServer:
             # self.mouse_controller.release(Button.left)
 
         #Action to control the mouse
-        if action[6] == 0:
-            if action[7] == 0 and action[8] == 0:
-                self.mouse_controller.move(1, 0)
-            elif action[7] == 1 and action[8] == 0:
-                self.mouse_controller.move(-1, 0)
-            elif action[7] == 0 and action[8] == 1:
-                self.mouse_controller.move(1, 0)
-            elif action[7] == 1 and action[8] == 1:
-                self.mouse_controller.move(-1, 0)
+        # if action[6] == 0:
+        #     if action[7] == 0:
+        #         self.mouse_controller.move(1, 0)
+        #     elif action[7] == 1:
+        #         self.mouse_controller.move(-1, 0)
+        #     # elif action[7] == 0 and action[8] == 1:
+        #     #     self.mouse_controller.move(1, 0)
+        #     # elif action[7] == 1 and action[8] == 1:
+        #     #     self.mouse_controller.move(-1, 0)
         
-        # if action[7] == 1 and action[6] == 0:
-        #     self.mouse_controller.move(-1, 0)
-        # if action[6] == 1 and action[7] == 0:
-        #     self.mouse_controller.move(1, 0)
-        # if action[9] == 1 and action[8] == 0:
-        #     self.mouse_controller.move(0, 1)
-        # if action[8] == 1 and action[9] == 0:
-        #     self.mouse_controller.move(0, -1)    
+        if action[7] == 1 and action[6] == 0:
+            self.mouse_controller.move(-1, 0)
+        if action[6] == 1 and action[7] == 0:
+            self.mouse_controller.move(1, 0)
+        if action[9] == 1 and action[8] == 0:
+            self.mouse_controller.move(0, 1)
+        if action[8] == 1 and action[9] == 0:
+            self.mouse_controller.move(0, -1)    
 
         # we only set movement action if action[0] == 0
         # this is so as we prevent any keyboard-related inputs when action[0] == 1
@@ -437,7 +442,7 @@ class GameServer:
 
         # initialise bomb plant
         self.mouse_controller.press(Button.left)
-        time.sleep(4.5)
+        time.sleep(5)
         self.mouse_controller.release(Button.left)
 
 

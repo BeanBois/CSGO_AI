@@ -77,9 +77,13 @@ class EnemyScreenDetector:
             return None
         else:
             if self.enemy_screen_coords['head'] is not (None,None):
-                return self.enemy_screen_coords['head']
+                tmp = self.enemy_screen_coords['head']
+                self.enemy_screen_coords = None
+                return tmp
             elif self.enemy_screen_coords['body'] is not (None,None):
-                return self.enemy_screen_coords['body']
+                tmp = self.enemy_screen_coords['body']
+                self.enemy_screen_coords = None
+                return tmp
             else:
                 return None
 
@@ -88,8 +92,7 @@ class EnemyScreenDetector:
     def scan_for_enemy(self, image):
         self.held_image = image #update the held image
         return self._scan_for_enemy(image)
-
-
+    
     def _scan_for_enemy(self, image):
         print('scanning for enemy')
         try:
