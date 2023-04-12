@@ -35,7 +35,7 @@ class GameClient:
 
 if __name__ == "__main__":
     action = [0,0,0,0,0,0,0,0,0,0,0,None,None]
-    action[6] = 1
+    # action[6] = 1
     action[8] = 1
     action = [str(x) for x in action]
     action = ','.join(action)
