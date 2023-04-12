@@ -94,7 +94,7 @@ class EnemyScreenDetector:
         return self._scan_for_enemy(image)
     
     def _scan_for_enemy(self, image):
-        print('scanning for enemy')
+        # print('scanning for enemy')
         try:
             image_processed = self._process_image(image)
 

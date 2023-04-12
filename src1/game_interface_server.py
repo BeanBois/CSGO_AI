@@ -127,13 +127,13 @@ class GameServer:
         #     #     self.mouse_controller.move(-1, 0)
         
         if action[7] == 1 and action[6] == 0:
-            self.mouse_controller.move(-1, 0)
+            self.mouse_controller.move(-100, 0)
         if action[6] == 1 and action[7] == 0:
-            self.mouse_controller.move(1, 0)
+            self.mouse_controller.move(100, 0)
         if action[9] == 1 and action[8] == 0:
-            self.mouse_controller.move(0, 1)
+            self.mouse_controller.move(0, 50)
         if action[8] == 1 and action[9] == 0:
-            self.mouse_controller.move(0, -1)    
+            self.mouse_controller.move(0, -50)    
 
         # we only set movement action if action[0] == 0
         # this is so as we prevent any keyboard-related inputs when action[0] == 1
