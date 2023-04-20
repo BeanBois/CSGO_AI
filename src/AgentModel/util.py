@@ -18,7 +18,16 @@ def prBlack(prt): print("\033[98m {}\033[00m" .format(prt))
 def to_numpy(var):
     return var.cpu().data.numpy() if USE_CUDA else var.data.numpy()
 
-def to_tensor(ndarray, volatile=False, requires_grad=False, dtype=FLOAT):
+def to_tensor(ndarray, volatile=False, requires_grad=False, dtype=FLOAT, is_batch=False):
+    if type(ndarray) == list or is_batch:
+        if type(ndarray) == np.ndarray:
+            ndarray = ndarray.tolist()
+        for i in range(len(ndarray)):
+            if type(ndarray[i]) != np.ndarray:
+                ndarray[i] = np.asarray(ndarray[i])
+            ndarray[i] = to_tensor(ndarray[i], volatile, requires_grad, dtype)
+        tensor = torch.stack(ndarray)
+        return tensor
     return Variable(
         torch.from_numpy(ndarray), volatile=volatile, requires_grad=requires_grad
     ).type(dtype)

@@ -96,20 +96,32 @@ class ReplayBuffer:
         self.max_size = max_size
     
     def push(self, state, p_state, action, reward, next_state, next_p_state, goal, p_goal, done):
-        transition = tuple((flatten_obs(state), flatten_p_obs(p_state), action, reward, flatten_obs(next_state), \
-            flatten_p_obs(next_p_state), flatten_goal(goal), flatten_goal(p_goal), done))
+        transition = tuple((flatten_obs(state), flatten_p_obs(p_state), action, reward, flatten_obs(next_state), flatten_p_obs(next_p_state), flatten_goal(goal), flatten_goal(p_goal), done))
         self.buffer.append(transition)
         print(len(self.buffer))
         if len(self.buffer) > self.max_size:
             self.buffer.pop(0)
     
     def sample(self, batch_size):
-        state_batch, p_state_batch, action_batch, reward_batch, next_state_batch, next_p_state_batch, \
-            goal_batch, p_goal_batch, done_batch = np.transpose(random.sample(self.buffer, batch_size))
+        # state_batch, p_state_batch, action_batch, reward_batch, next_state_batch, next_p_state_batch, goal_batch, p_goal_batch, done_batch = zip(*random.sample(self.buffer, batch_size))
+        state_batch, p_state_batch, action_batch, reward_batch, next_state_batch, next_p_state_batch, goal_batch, p_goal_batch, done_batch = np.transpose(random.sample(self.buffer, batch_size))
+        # state_batch = np.array([i for i in state_batch])
+        # p_state_batch = np.array([i.astype('float') for i in p_state_batch])
+        # action_batch = np.array([i for i in action_batch])
+        # reward_batch = np.array([i for i in reward_batch])
+        # next_state_batch = np.array([i for i in next_state_batch])
+        # next_p_state_batch = np.array([i for i in next_p_state_batch])
+        # goal_batch = np.array([i for i in goal_batch])
+        # p_goal_batch = np.array([i for i in p_goal_batch])
+        # done_batch = np.array([i for i in done_batch])
         return state_batch, p_state_batch, \
                 action_batch, reward_batch, \
                 next_state_batch, next_p_state_batch,\
                 goal_batch, p_goal_batch, done_batch
+        # return torch.tensor(state_batch), torch.to_tensor(p_state_batch), \
+        #         torch.tensor(action_batch), torch.tensor(reward_batch).unsqueeze(1), \
+        #         torch.tensor(next_state_batch), torch.to_tensor(next_p_state_batch),\
+        #         torch.to_tensor(goal_batch), torch.to_tensor(p_goal_batch), torch.tensor(done_batch).unsqueeze(1)
 
 class MTRNN(nn.Module):
     def __init__(self, input_size, hidden_size):
@@ -157,7 +169,6 @@ class MTRNN(nn.Module):
 
 class ActionLayer(nn.Module):
     def __init__(self,action_size):
-        super(ActionLayer, self).__init__()
         self.action_size = action_size
     def forward(self, x):
         action = torch.zeros(self.action_size)
@@ -173,10 +184,10 @@ class Critic(nn.Module):
     def __init__(self, state_dim, action_dim, goal_dim):
         super(Critic, self).__init__()
         self.fc1 = nn.Linear(flatdim(state_dim) + flatdim(action_dim) + flatdim(goal_dim), 512)
-        self.fc2 = nn.Linear(512, 1024)
-        self.fc3 = nn.Linear(1024, 1024)
-        self.fc4 = nn.Linear(1024, 1024)
-        self.fc5 = nn.Linear(1024, 512)
+        self.fc2 = nn.Linear(512, 512)
+        self.fc3 = nn.Linear(512, 512)
+        self.fc4 = nn.Linear(512, 512)
+        self.fc5 = nn.Linear(512, 512)
         self.fc6 = nn.Linear(512, 1)
         
         #init weight
@@ -194,6 +205,8 @@ class Critic(nn.Module):
 
     def forward(self, state, action, goal):
         x = torch.cat((state.flatten(), action.flatten(), goal.flatten()), dim=0)
+        # x = np.concatenate((state.flatten(), action.flatten(), goal.flatten()), axis=None)
+        # x = torch.from_numpy(x).float()
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         x = self.relu(self.fc3(x))
@@ -208,10 +221,10 @@ class Actor(nn.Module):
     def __init__(self, state_dim, action_dim, goal_dim):
         super(Actor, self).__init__()
         self.fc1 = nn.Linear(flatdim(state_dim) + flatdim(goal_dim), 512)
-        self.fc2 = nn.Linear(512, 1024)
-        self.fc3 = nn.Linear(1024, 1024)
-        self.fc4 = nn.Linear(1024, 1024)
-        self.fc5 = nn.Linear(1024, 512)
+        self.fc2 = nn.Linear(512, 512)
+        self.fc3 = nn.Linear(512, 512)
+        self.fc4 = nn.Linear(512, 512)
+        self.fc5 = nn.Linear(512, 512)
         self.fc6 = nn.Linear(512, flatdim(action_dim)) # action_dim = 10
         # self.relu = nn.ReLU()
         self.relu = torch.nn.functional.relu
@@ -232,6 +245,9 @@ class Actor(nn.Module):
 
     def forward(self, state, goal):
         x = torch.cat((state.flatten(), goal.flatten()), dim=0)
+        # x= np.concatenate((state.flatten(), goal.flatten()), axis=None)
+        # x = torch.from_numpy(x).float()
+        
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         x = self.relu(self.fc3(x))
@@ -263,7 +279,7 @@ class DDPG:
         self.tau = 0.98
         self.batch_size = 100
         self.horizon = 50
-        self.exploration_prob = 0.8
+        self.exploration_prob = 0.2
         self.exploration_noise = 0.05 
 
         hard_update(self.target_actor, self.actor) # Make sure target is with the same weight
@@ -334,7 +350,7 @@ class DDPG:
             soft_update(self.target_actor, self.actor, self.tau)
             soft_update(self.target_critic, self.critic, self.tau)
             vl += value_loss.data
-            pl += policy_loss.data
+            policy_loss += pl
             print("value loss: ", vl, "policy loss: ", pl)
         return vl/self.batch_size, pl/self.batch_size
 
@@ -408,7 +424,7 @@ class DDPG:
             torch.load('{}/critic_{}_{}.pkl'.format(output,epoch_num,epoch_cycle_num,))
         )
 
-    def save_model(self,output='CSGO_model_weights',epoch_num = 0, epoch_cycle_num = 0):
+    def save_model(self,output='CSGO_model_weights2',epoch_num = 0, epoch_cycle_num = 0):
         torch.save(
             self.actor.state_dict(),
             '{}/actor_{}_{}.pkl'.format(output,epoch_num,epoch_cycle_num)

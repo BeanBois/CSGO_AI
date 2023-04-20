@@ -17,6 +17,7 @@ TRAINING = True
 
 TIME_STEPS = 400
 NAME_OF_AGENT = 'beebeepop'
+LOOK_AHEAD_STEPS = 4
 class CSGO_Env_Utils:
 
     def location_domain(max_x, min_x, max_y, min_y, max_z, min_z):
@@ -175,13 +176,28 @@ class CSGO_Env_Utils:
         
         goal2 = Goal(goal_2, 1)
         
-        return [goal1, goal2]
+        def goal_3(obs):
+            if obs['enemy']['health'] < 100:
+                return True
+            return False
+        
+        goal3 = Goal(goal_3, 2)
+        def goal_4(obs):
+            if obs['agent']['health'] < 100:
+                return False
+            return True
+        
+        goal4 = Goal(goal_4, 3)
+        
+        return [goal1, goal2, goal3, goal4]
 
     def goal_domain():
         return Box(low=0, high=2, shape=(1,), dtype=np.int32)
         
         return spaces.Box(low=0, high=2, shape=(1,), dtype=np.int32)
-class CSGO_Env(gym.Env):
+
+
+class CSGO_Env_Alpha(gym.Env):
     MAP_NAME = 'de_dust2'
     MAP_DATA = NAV_CSV[NAV_CSV["mapName"] == MAP_NAME]
     OBSERVING_TIME = 0.1
@@ -201,6 +217,7 @@ class CSGO_Env(gym.Env):
         # observation space can be abstractly thought of as a set of nodes
         # each node encapsulates the following
         self.lock = th.RLock()
+        self.look_ahead = LOOK_AHEAD_STEPS
 
         # self._prev_action = None
         self.observation_space = CSGO_Env_Utils.observation_space_domain(
@@ -210,7 +227,7 @@ class CSGO_Env(gym.Env):
         self.goal_space = CSGO_Env_Utils.goal_domain()
         # CSGO_Env_Utils.start_game(
         #     self.MAP_NAME, self.MAP_DATA, self.keyboard_controller, self.mouse_controller)
-
+        self.init_actions = None
     def _init_para(self):
         self.bombsite_choice = random.choice(['BombsiteA', 'BombsiteB']) if self.bombsite_choice is None else self.bombsite_choice
         self.min_x, self.max_x = None, None
@@ -221,8 +238,8 @@ class CSGO_Env(gym.Env):
         # self._set_of_goals = CSGO_Env_Utils.generate_set_of_goals(self.bombsite_choice)
         self._set_of_goals = CSGO_Env_Utils.generate_goals()
 
-        for i in range(len(CSGO_Env.MAP_DATA)):
-            data = CSGO_Env.MAP_DATA.iloc[i]
+        for i in range(len(CSGO_Env_Alpha.MAP_DATA)):
+            data = CSGO_Env_Alpha.MAP_DATA.iloc[i]
             if self.min_x is None or self.min_x > float(data["northWestX"]):
                 self.min_x = float(data["northWestX"])
 
@@ -252,6 +269,62 @@ class CSGO_Env(gym.Env):
         if self._obs is not None and self._obs['agent']['health'] <= 0:
                 agent_dead = True
         self._apply_action(action, (self._is_done() or agent_dead))
+
+    
+        #get state should be called after action is applied to get the next state
+        information = {}
+        information['player'] = client.get_info("player")
+        information['phase_countdowns'] = client.get_info("phase_countdowns")
+        information['round'] = client.get_info("round")
+        information['allplayers'] = client.get_info("allplayers")
+        information['bomb'] = client.get_info("bomb")
+        
+        #check if player is right
+        
+        prev_observation = self._obs
+        prev_part_observation = self._part_obs
+
+        self._get_state(information)
+
+        self._get_reward(prev_observation, prev_part_observation, action)
+
+        info = {'goal state' : self._goal_state,'partial goal state': self._partial_goal_state}
+        print("step taken, variables are: ")
+        print(f"observation: {self._obs}")
+        print(f"partial observation: {self._part_obs}")
+        print(f"reward: {self._reward}")
+        print(f"done: {self._is_done()}")
+        print(f"info: {info}")
+        
+        return self._obs, self._part_obs, self._reward, self._is_done(), {'goal state' : self._goal_state.index,'partial goal state': self._partial_goal_state.index}
+    
+    def _reset(self, actions):
+        seq_obs, seq_p_obs, seq_reward, seq_done, seq_goal_state = [], [], [], [], []
+        with self.lock:
+            for i in range(self.look_ahead):
+                action = actions[i]
+                obs, p_obs, reward, done, info_list = self._step(action)
+                seq_obs.append(obs)
+                seq_p_obs.append(p_obs)
+                seq_goal_state.append(info_list)
+                seq_reward.append(reward)
+                seq_done.append(done)
+            
+            info = dict()
+            info['obs'] = seq_obs
+            info['p_obs'] = seq_p_obs
+            info['rewards'] = seq_reward
+            info['dones'] = seq_done
+            info['goals'] = seq_goal_state
+            return seq_obs[-1], seq_reward[-1], seq_done[-1], False, info
+    
+    def _step(self, action):
+        
+        agent_dead = False
+        if self._obs is not None and self._obs['agent']['health'] <= 0:
+                agent_dead = True
+        if action is not None:
+            self._apply_action(action, (self._is_done() or agent_dead))
 
     
         #get state should be called after action is applied to get the next state
@@ -587,6 +660,18 @@ class CSGO_Env(gym.Env):
         
         #keep match result consistent
         match_result = self._obs['winner']       
+        # match_result = 0
+        # if "bomb" in round_info.keys():
+        #     bomb_state = round_info['bomb']
+        #     if bomb_state == 'exploded':
+        #     # if bomb_state == 'exploded' or int(enemy['state']['health']) <= 0:
+        #         match_result = 1 # bomb exploded or , Terrorist win
+        #     elif bomb_state == 'planted' and int(enemy['state']['health']) <= 0:
+        #         match_result = 1 #enemy killed before bomb is defused, agent wins
+        #     elif bomb_state == 'defused':
+        #         match_result = 2 # bomb defused, Counter Terrorist win
+        #     elif bomb_state == 'dropped' and int(agent['state']['health']) <=0:
+        #         match_result = 2 # agent killed before bomb planted, CT wins
                 
         if agent_weapon is not None:
             agent_bullets = int(agent_weapon['ammo_clip']) if "ammo_clip" in agent_weapon.keys() else 0
@@ -714,7 +799,7 @@ class CSGO_Env(gym.Env):
 
         }
 
-
+        
     def reset(self):
         #reset variables
         self._obs = None
@@ -743,14 +828,15 @@ class CSGO_Env(gym.Env):
         
 
         # get information and img
-        information = {}
-        information['player'] = client.get_info("player")
-        information['phase_countdowns'] = client.get_info("phase_countdowns")
-        information['round'] = client.get_info("round")
-        information['allplayers'] = client.get_info("allplayers")
-        information['bomb'] = client.get_info("bomb")
-        self._get_state(information)
-        return self._obs, self._part_obs, 0, False,self._goal_state.index, self._partial_goal_state.index
+        init_actions = [None for i in range(self.look_ahead)]
+        _,_,_,_,info = self._reset(init_actions)
+        self.init_actions = None
+        seq_obs = info['obs']
+        seq_p_obs = info['p_obs']
+        seq_reward = info['rewards']
+        seq_done = info['dones']
+        seq_goal_state = info['goals']
+        return seq_obs, seq_p_obs, seq_reward, seq_done, seq_goal_state
 
 # Goals implementation
     # Goals are basically a strategic objective in the game
@@ -769,5 +855,6 @@ class CSGO_Env(gym.Env):
         # make partial goal state as of now we just copy the goal state
         return goal_state
 
-
+    def idle_action(self):
+        return [1,0,0,0,0,0,0,0,0,0,0]
 

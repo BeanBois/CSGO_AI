@@ -9,24 +9,15 @@ NAME_OF_AGENT = 'beebeepop'
 class client:
     
     def get_info(key):
-        # host='192.168.1.109' #client ip
-        # host='10.40.35.107' #client ip
-        
-        #to run by itself
-        # host = '127.0.0.1'
-        # port = 4005
-        # server_port = 4000
-        # server = ('127.0.0.1', server_port)
+
         
         #running with separate laptop 
         server_port = 4000
         port = 4005
-        server = ('192.168.1.70', server_port)
-        host='192.168.1.109' #client ip
-        # host='10.40.35.107' #client ip
+        server = ('XXX.XXX.XXX.XXX', server_port) #ip address of the laptop communicating with the computer running this code
+        host='XXX.XXX.XXX.XXX' #ip address of the laptop running the server
         
-        # server = ('10.40.35.107', 4000)
-        
+    
         find_player = False
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # s.settimeout(5)
@@ -41,7 +32,7 @@ class client:
             s.sendto(key.encode('utf-8'), server)
             ready = select.select([s], [], [], 0.5)
         if ready[0]:
-            data, addr = s.recvfrom(1024*4)
+            data, addr = s.recvfrom(1024*5)
             data = data.decode('utf-8')
             if data == "done":
                 return

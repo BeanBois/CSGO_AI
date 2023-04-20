@@ -108,6 +108,8 @@ class GameServer:
         if left_click:
             #if there is a target to aim at
             if cursor_location[0] is not None and cursor_location[1] is not None:
+                mouse_pos_x, mouse_pos_y = self.mouse_controller.position
+                
                 self.mouse_controller.position = cursor_location
                 # curr_cursor_position = self.mouse_controller.position
                 # self.mouse_controller.move(

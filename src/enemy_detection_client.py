@@ -13,18 +13,14 @@ import pandas as pd
 import re
 
 
-RADAR_RANGE = (10,65,145,200)
-SCREEN_WIDTH,SCREEN_HEIGHT = (1920, 1024)
 class EnemyDetectorClient:
     def get_enemy_info():
-        host='192.168.1.109' #client ip
-        # host = '10.40.212.48'
+        host='XXX.XXX.XXX.XXX' #ip address of the laptop running this code
         port = 6005
         
         server_port = 5000
 
-        server = ('192.168.1.241', server_port)
-        # server = ('10.40.36.226',server_port)
+        server = ('XXX.XXX.XXX.XXX', server_port)# ip address of the laptop communicating with the computer running this code
         
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.settimeout(10)

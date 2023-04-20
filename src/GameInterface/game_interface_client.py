@@ -6,8 +6,8 @@ class GameClient:
 
     def send_action(action, done=False):
         port = 5005
-        host = '192.168.1.109'
-        server = ('192.168.1.241', 5000)
+        host = 'XXX.XXX.XXX.XXX' #ip address of the laptop running this code
+        server = ('XXX.XXXX.XXXX.XXX', 5000) #ip address of the laptop communicating with the computer running this code
         # buffer = (host, port)
         
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

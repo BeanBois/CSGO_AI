@@ -1,6 +1,8 @@
 **/src/processed_images/
 **/GameInterface/csgo_bomb_images/
 **/src/test_images/
+**/src/CSGO_model_weights*/
 **/src/CSGO_model_weights/
-**/src/training_statistics/
+**/src/training_statistics*/
 **/src/runs/
+*/src/testing_data/*
