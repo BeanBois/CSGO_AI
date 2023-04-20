@@ -115,21 +115,12 @@ class GameServer:
             self.mouse_controller.click(Button.left,1)
             # self.mouse_controller.release(Button.left)
 
-        #Action to control the mouse
-        # if action[6] == 0:
-        #     if action[7] == 0:
-        #         self.mouse_controller.move(1, 0)
-        #     elif action[7] == 1:
-        #         self.mouse_controller.move(-1, 0)
-        #     # elif action[7] == 0 and action[8] == 1:
-        #     #     self.mouse_controller.move(1, 0)
-        #     # elif action[7] == 1 and action[8] == 1:
-        #     #     self.mouse_controller.move(-1, 0)
+
         
         if action[7] == 1 and action[6] == 0:
-            self.mouse_controller.move(-100, 0)
+            self.mouse_controller.move(-500, 0)
         if action[6] == 1 and action[7] == 0:
-            self.mouse_controller.move(100, 0)
+            self.mouse_controller.move(500, 0)
         if action[9] == 1 and action[8] == 0:
             self.mouse_controller.move(0, 50)
         if action[8] == 1 and action[9] == 0:
@@ -248,34 +239,39 @@ class GameServer:
             self.keyboard_controller, 'mp_c4timer', '40')  # Set bomb explode timer
         self.csgo_type_command(
             self.keyboard_controller, 'mp_autokick', '0')
+        self.csgo_type_command(
+            self.keyboard_controller, 'sv_infinite_ammo', '1')  # Set freezetime to 0
+        self.csgo_type_command(
+            self.keyboard_controller, 'mp_startmoney', '10000')  # Set freezetime to 0
+
         # Set CT default primary weapon
-        # self.csgo_type_command(
-        #     self.keyboard_controller, 'mp_ct_default_primary', 'weapon_m4a1')
-        # # Set CT default secondary weapon
-        # self.csgo_type_command(
-        #     self.keyboard_controller, 'mp_ct_default_secondary', 'weapon_usp_silencer')
-        # self.csgo_type_command(
-        #     self.keyboard_controller, 'mp_t_default_primary', 'weapon_ak47')  # Set T default primary weapon
-        # # Set T default secondary weapon
-        # self.csgo_type_command(
-        #     self.keyboard_controller, 'mp_t_default_secondary', 'weapon_glock')
+        self.csgo_type_command(
+            self.keyboard_controller, 'mp_ct_default_primary', 'weapon_m4a1')
+        # Set CT default secondary weapon
+        self.csgo_type_command(
+            self.keyboard_controller, 'mp_ct_default_secondary', 'weapon_usp_silencer')
+        self.csgo_type_command(
+            self.keyboard_controller, 'mp_t_default_primary', 'weapon_ak47')  # Set T default primary weapon
+        # Set T default secondary weapon
+        self.csgo_type_command(
+            self.keyboard_controller, 'mp_t_default_secondary', 'weapon_glock')
 
         # # setting what weapons to can be used, for which team
         # # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        # self.csgo_type_command(
-        #     self.keyboard_controller, 'mp_weapons_allow_heavy', '0')
-        # # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        # self.csgo_type_command(
-        #     self.keyboard_controller, 'mp_weapons_allow_pistols', '-1')
-        # # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        # self.csgo_type_command(
-        #     self.keyboard_controller, 'mp_weapons_allow_rifles', '-1')
-        # # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        # self.csgo_type_command(
-        #     self.keyboard_controller, 'mp_weapons_allow_smgs', '0')
-        # # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
-        # self.csgo_type_command(
-        #     self.keyboard_controller, 'mp_weapons_allow_snipers', '0')
+        self.csgo_type_command(
+            self.keyboard_controller, 'mp_weapons_allow_heavy', '0')
+        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
+        self.csgo_type_command(
+            self.keyboard_controller, 'mp_weapons_allow_pistols', '-1')
+        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
+        self.csgo_type_command(
+            self.keyboard_controller, 'mp_weapons_allow_rifles', '-1')
+        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
+        self.csgo_type_command(
+            self.keyboard_controller, 'mp_weapons_allow_smgs', '0')
+        # -1 : all allow, 0: none allow, 2: only T allow, 3: only CT allow
+        self.csgo_type_command(
+            self.keyboard_controller, 'mp_weapons_allow_snipers', '0')
 
         # ff_damage_bullet_penetration 0/1 to allow bullet penetration
 
@@ -336,6 +332,14 @@ class GameServer:
         #     self.keyboard_controller, 'bot_difficulty', '2')
 
         # self.csgo_type_command(
+        #     self.keyboard_controller, 'bot_quota', '1')  # number of bot
+        self.csgo_type_command(
+            self.keyboard_controller, 'sv_bots_force_rebuy_every_round', '1')  # number of bot
+        self.csgo_type_command(
+            self.keyboard_controller, 'bot_autodifficulty_threshold_high', '20')  # number of bot
+        self.csgo_type_command(
+            self.keyboard_controller, 'bot_autodifficulty_threshold_low', '20')  # number of bot
+        # self.csgo_type_command(
         #     self.keyboard_controller, 'bot_add_ct', 'normal')  # number of bot
 
         # close terminal
@@ -371,18 +375,9 @@ class GameServer:
         self.reset_controllers()
         # choose bombsite
         bombsite = self.map_data[self.map_data['areaName'] == bombsite_choice].sample()
-        # enemy_spawn = self.map_data[self.map_data['areaName']
-        #                        != bombsite_choice].sample()
 
-        # bomb_position = Box(low=np.array([bombsite['northWestX'], bombsite['northWestY'], bombsite['northWestZ']]),
-        #                     high=np.array(
-        #                         [bombsite['southEastX'], bombsite['southEastY'], bombsite['southEastZ']]),
-        #                     dtype=np.float32).sample()
         bomb_position = random.choice(self._get_bombsites_points(bombsite_choice))
-        # enemy_position = Box(low=np.array([enemy_spawn['northWestX'], enemy_spawn['northWestY'], enemy_spawn['northWestZ']]),
-        #                      high=np.array(
-        #                          [enemy_spawn['southEastX'], enemy_spawn['southEastY'], enemy_spawn['southEastZ']]),
-        #                      dtype=np.float32).sample()
+   
 
         # open terminal
         self.keyboard_controller.press('`')
@@ -390,39 +385,23 @@ class GameServer:
         self.keyboard_controller.release('`')
 
         # first give the player the bomb
-        # self.csgo_type_command(
-            # self.keyboard_controller, 'mp_give_player_c4', '1')  # Give T bomb
 
-        # then we spawn the enemy, but first we freeze bot first
+        #end the round
         self.csgo_type_command(
             self.keyboard_controller, 'endround')  # 1 bot
+
+        # we freeze bot first
         self.csgo_type_command(
             self.keyboard_controller, 'bot_stop', '1')  # 1 bot
-        # self.csgo_type_command(
-        #     self.self.keyboard_controller, 'setpos', f'{enemy_position[0]}', f'{enemy_position[1]}', f'{enemy_position[2]}')  # 1 bot
-        # # check if player stuck
 
-        # self.csgo_type_command(self.keyboard_controller, 'bot_place')
+        #give agent a weapon : weapon_ak47
+        self.csgo_type_command(
+            self.keyboard_controller, 'give', 'weapon_ak47')  # give agent weapon
+
 
         # then we go to the bombsite
         self.csgo_type_command(
             self.keyboard_controller, 'setpos', f'{bomb_position[0]}', f'{bomb_position[1]}', f'{bomb_position[2]}')  # 1 bot
-        # check if player stuck if yes noclip to unstuck
-
-        # ensure that the player is at the bomb site
-        # player_info = server.get_info("player")
-        # player_info = client.get_info("player")
-
-        # print('player info : ', player_info)
-        # curr_loc = np.array(
-        #     player_info['position'].split(','), dtype=np.float32)
-
-        # # curr_loc = np.fromstring(player_info['location'], dtype = np.int32, sep = ',')
-        # assert (
-        #     curr_loc[0] >= bombsite['northWestX'] and curr_loc[0] <= bombsite['southEastX'] and
-        #     curr_loc[1] >= bombsite['northWestY'] and curr_loc[1] <= bombsite['southEastY'] and
-        #     curr_loc[2] >= bombsite['northWestZ'] and curr_loc[2] <= bombsite['southEastZ']
-        # )
 
         #close terminal
         self.keyboard_controller.press('`')
@@ -447,17 +426,6 @@ class GameServer:
         self.keyboard_controller.release('`')
 
         self.csgo_type_command(self.keyboard_controller, 'bot_stop', '0')
-            # # round_status = server.get_info('round')
-            # round_status = client.get_info('round')
-            # while 'bomb' not in round_status.keys():
-            #     # round_status = server.get_info('round')
-            #     round_status = client.get_info('round')
-            #     if 'bomb' in round_status.keys():
-            #         if round_status['bomb'] == 'planted':
-            #             # unfreeze bot and start the game
-            #             self.csgo_type_command(
-            #                 self.keyboard_controller, 'bot_stop', '0')  # 1 bot
-                        # break
 
         print('bomb planted')
         # close terminal
@@ -490,10 +458,7 @@ class GameServer:
             self.keyboard_controller.release(Key.shift)
         if self.keyboard_controller.ctrl_pressed:
             self.keyboard_controller.release(Key.ctrl)
-        # if self.mouse_controller.left_pressed:
-        #     self.mouse_controller.release(Button.left)
-        # if self.mouse_controller.right_pressed:
-        #     self.mouse_controller.release(Button.right)
+
 
 
 if __name__ == '__main__':

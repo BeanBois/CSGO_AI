@@ -18,8 +18,9 @@ import numpy as np
 from matplotlib import pyplot as plt
 from get_screen import get_screen
 
-# RADAR_RANGE = (10,65,145,200)
+# Dimensions of the radar on the screen
 RADAR_RANGE = (20, 75, 285, 330)
+# Dimensions of the screen
 SCREEN_WIDTH,SCREEN_HEIGHT = (1920, 1080)
 class EnemyRadarDetector:
     
@@ -193,7 +194,6 @@ class EnemyDetectorServer:
     
     def enemy_detect(s, client):
         #receive the coordinates of the enemy on screen, and if enemy is present
-        # img = grabscreen.grab_screen(region=(0, 0, 1920, 1080)) #TODO: decide on region
         img = get_screen()
         # print(img.shape)
         # cv2.imshow('window', img)
@@ -220,51 +220,7 @@ class EnemyDetectorServer:
         # data = json.dumps(data)
         data = str(data)
         s.sendto(data.encode('utf-8'), client)
-    
-    def start_enemy_detection_model():
-        
-        host = '192.168.1.241'
-        
-        # host = '127.0.0.1' #server ip
-        port = 4500
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.bind((host, port))
-        print("Server Started")
-        
-        # _, addr = s.recvfrom(1024)
-        client =('192.168.1.109', 4505)
-        
-        while True:
-            #receive the coordinates of the enemy on screen, and if enemy is present
-            img = grabscreen.grab_screen(region=(0, 0, 1920, 1080)) #TODO: decide on region
-            # print(img.shape)
-            # cv2.imshow('window', img)
-            # cv2.waitKey(1) #comment out, jsut to check implementation
-            x0 = RADAR_RANGE[0]
-            y0 = RADAR_RANGE[1]
-            x1 = RADAR_RANGE[2]
-            y1 = RADAR_RANGE[3]
-            radar_img = img[y0:y1, x0:x1]
-            # cv2.imshow('radar', radar_img)
-            # cv2.waitKey(1) #comment out, jsut to check implementation
-            enemy_on_radar = ENEMY_RADAR_DETECTOR.scan_for_enemy(radar_img)
-            if enemy_on_radar or True:
-                enemy_screen_coords = ENEMY_SCREEN_DETECTOR.scan_for_enemy(img)
-                print('enemy_screen_coords', enemy_screen_coords)
-                if enemy_screen_coords is not None:
-                    data = {"enemy_on_screen" : "1", "enemy_screen_coords" : enemy_screen_coords}
-                else:
-                    data = {"enemy_on_screen" : "1", "enemy_screen_coords" : "null"}           
-            else:
-                data = {"enemy_on_screen" : "null", "enemy_screen_coords" : "null"}
-            #then process the data from client, specifically
-            #see if the enemy is present, and if so, get the coordinates of the enemy
-            # data = json.dumps(data)
-            data = str(data)
-            s.sendto(data.encode('utf-8'), client)
-        
-        # s.close()
 
 if __name__ == '__main__':
     import time 

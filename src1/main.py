@@ -2,33 +2,23 @@ import threading as th
 from game_interface_server import GameServer
 from enemy_detector_server import EnemyDetectorServer
 import socket
-host = '192.168.1.241'
+host = 'xxx.xxx.xxx.xxx' #ip of the computer that will be running the code
 
-# host = '127.0.0.1' #server ip
+
 port = 5000
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.bind((host, port))
-game_client = ('192.168.1.109', 5005)
-enemy_detector_client = ('192.168.1.109', 6005)
-# host = '127.0.0.1' #server ip
-# port = 4000
+game_client = ('xxx.xxx.xxx.xxx', 5005) #ip of the computer that will commputer that will be commnunicating with this computer
+enemy_detector_client = ('xxx.xxx.xxx.xxx', 6005)#ip of the computer that will commputer that will be commnunicating with this computer
 
-# s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# s.bind((host, port))
-# print("Server Started")   
-    
-# # _, addr = s.recvfrom(1024)
-# client =('192.168.1.109', 4005)
+
 
 game_server = GameServer()
-# enemy_detector_server = EnemyDetectorServer()
+
 
 while True:
     game_server.get_action(s, game_client)
     EnemyDetectorServer.enemy_detect(s, enemy_detector_client)
 
 
-#let 2 thread share the socket!
-# thread1.start()
-# thread2.start()
