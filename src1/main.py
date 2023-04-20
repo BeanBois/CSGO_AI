@@ -9,8 +9,8 @@ port = 5000
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.bind((host, port))
-game_client = ('xxx.xxx.xxx.xxx', 5005) #ip of the computer that will commputer that will be commnunicating with this computer
-enemy_detector_client = ('xxx.xxx.xxx.xxx', 6005)#ip of the computer that will commputer that will be commnunicating with this computer
+game_client = ('xxx.xxx.xxx.xxx', 5005) #ip address of the laptop communicating with the computer running this code
+enemy_detector_client = ('xxx.xxx.xxx.xxx', 6005)#ip address of the laptop communicating with the computer running this code
 
 
 
