@@ -1,0 +1,7 @@
+[submodule "Models/Navigation/awpy"]
+	path = Models/Navigation/awpy
+	url = https://github.com/pnxenopoulos/awpy
+
+[submodule "Models/Visual/Yolov5ForCSGO"]
+	path = Models/Visual/Yolov5ForCSGO
+	url = https://github.com/Lucid1ty/Yolov5ForCSGO/tree/main
