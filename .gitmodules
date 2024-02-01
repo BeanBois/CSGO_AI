@@ -4,4 +4,4 @@
 
 [submodule "Models/Visual/Yolov5ForCSGO"]
 	path = Models/Visual/Yolov5ForCSGO
-	url = https://github.com/Lucid1ty/Yolov5ForCSGO/tree/main
+	url = https://github.com/Lucid1ty/Yolov5ForCSGO
