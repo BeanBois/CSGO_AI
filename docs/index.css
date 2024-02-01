@@ -1,0 +1,58 @@
+img {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+header, main, footer {
+    margin: 20px;
+    padding: 20px;
+    border: 1px solid #ccc;
+}
+
+
+.tabs {
+    overflow: hidden;
+    margin-bottom: 10px;
+
+    max-width: 100%;
+}
+
+.tab {
+    padding: 10px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background-color: #f4f4f4;
+    margin-right: 5px;
+    margin-top: 5px;
+    float: left;
+    display: block;
+    color: #333;
+    text-align: center;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.tab:hover {
+    background-color: #ddd;
+}
+
+@media screen and (max-width: 600px) {
+    .tab {
+        float: none;
+        width: 100%;
+    }
+}
+.tab-content {
+    display: none;
+}
+
+.active {
+    background-color: #ddd;
+}
