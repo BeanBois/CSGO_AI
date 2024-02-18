@@ -16,6 +16,27 @@ header, main, footer {
     border: 1px solid #ccc;
 }
 
+.PDF_Button{
+    border: none;
+    color: #33;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.PDF_Button:hover {
+    background-color: #666;
+}
+
+.PDF_Button:active {
+    background-color: #666;
+    color: white;
+}
 
 .tabs {
     overflow: hidden;
@@ -40,7 +61,7 @@ header, main, footer {
 }
 
 .tab:hover {
-    background-color: #ddd;
+    background-color: #666;
 }
 
 @media screen and (max-width: 600px) {
@@ -54,5 +75,6 @@ header, main, footer {
 }
 
 .active {
-    background-color: #ddd;
+    background-color: #666;
+
 }
