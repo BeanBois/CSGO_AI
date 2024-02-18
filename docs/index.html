@@ -24,7 +24,7 @@
 
         <div class="tabs">
             <div class="tab" onclick="showContent('Introduction')">Introduction</div>
-            <!-- <div class="tab" onclick="showContent('Background Knowledge')">Background Knowledge</div> -->
+            <div class="tab" onclick="showContent('Background Knowledge')">Background Knowledge</div>
             <div class="tab" onclick="showContent('CSGO as a RL Problem')">CSGO as a RL Problem</div>
             <div class="tab" onclick="showContent('Why RL')">Why RL</div>
             <div class="tab" onclick="showContent('Definitions')">Class Definitions</div>
@@ -499,9 +499,12 @@
             </p>
         </div>
         <div id="Report" class="tab-content">
+            <button onClick="collapse()" class="PDF_Button">Show Report</button>
+            <div id="Report PDF" class="tab-content"> 
+                <embed src="Report.pdf" type="application/pdf" width="100%" height="800px" />
+            </div>
             <section>
                 <h2>Project Documentation</h2>
-                <embed src="Report.pdf" type="application/pdf" width="100%" height="90%"/>
                 <p>Download the project documentation in PDF format:</p>
                 <p><a href="Report.pdf" target="_blank">Project Report </a></p>
             </section>
@@ -513,6 +516,20 @@
     </main>
 
     <script>
+        function collapse() {
+            if(document.getElementById('Report').style.display === 'none') {
+                return;
+            } 
+            else {
+                if(document.getElementById('Report PDF').style.display === 'none'){
+                    document.getElementById('Report PDF').style.display = 'block';
+                } 
+                else {
+                    document.getElementById('Report PDF').style.display = 'none';
+                }
+
+            }
+        }
         function showContent(tabId) {
             const tabs = document.querySelectorAll('.tab-content');
             tabs.forEach(tab => {
