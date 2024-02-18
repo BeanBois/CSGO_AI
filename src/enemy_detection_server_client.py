@@ -8,7 +8,7 @@
 # from Models.Visual.Yolov5ForCSGO.utils.general import general.non_max_suppression, general.scale_coords, general.xyxy2xywh
 # from Models.Visual.Yolov5ForCSGO.utils.augmentations import augmentations.letterbox
 # from Models.Visual.Yolov5ForCSGO.grabscreen import grabscreen.grab_screen
-from Models.Visual.Yolov5ForCSGO import Yolov5ForCSGO
+# from Models.Visual.Yolov5ForCSGO import Yolov5ForCSGO
 import Models.Visual.Yolov5ForCSGO.aim_csgo.cs_model as cs_model
 import Models.Visual.Yolov5ForCSGO.utils.general as general
 import Models.Visual.Yolov5ForCSGO.utils.augmentations as augmentations
@@ -33,7 +33,7 @@ import imutils
 
 
 RADAR_RANGE = (10,65,145,200)
-
+SCREEN_WIDTH,SCREEN_HEIGHT = (1920, 1080)
 class EnemyRadarDetector:
     
     def __init__(self):
